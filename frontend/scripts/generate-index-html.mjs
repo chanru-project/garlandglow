@@ -28,6 +28,7 @@ if (fs.existsSync(assetsDir)) {
 const scriptInjection = entryJs ? `<script type="module" src="/assets/${entryJs}"></script>` : '';
 const cssInjection = cssFile ? `<link rel="stylesheet" href="/assets/${cssFile}">` : '';
 
+const tsrBootstrap = `<script>window.$_TSR=window.$_TSR||{};window.$_TSR.router=window.$_TSR.router||{manifest:{routes:{}},matches:[],dehydratedData:{},lastMatchId:undefined};window.$_TSR.buffer=window.$_TSR.buffer||[];window.$_TSR.h=window.$_TSR.h||(()=>{});window.$_TSR.e=window.$_TSR.e||(()=>{});window.$_TSR.c=window.$_TSR.c||(()=>{});window.$_TSR.p=window.$_TSR.p||((cb)=>{try{cb()}catch{}});</script>`;
 
 const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -43,16 +44,7 @@ const htmlContent = `<!DOCTYPE html>
       rel="stylesheet"
     />
     ${cssInjection}
-    <script>
-      window.$_TSR = window.$_TSR || {
-        router: {
-          manifest: { routes: {} },
-          matches: [],
-          dehydratedData: {},
-          lastMatchId: undefined
-        }
-      };
-    </script>
+    ${tsrBootstrap}
   </head>
   <body>
     <div id="root"></div>
@@ -75,7 +67,7 @@ const rendererChunkPath = path.resolve('.output/server/_chunks/renderer-template
 if (fs.existsSync(rendererChunkPath)) {
   let chunkContent = fs.readFileSync(rendererChunkPath, 'utf-8');
   if (chunkContent.includes('/src/main.tsx')) {
-    const tsrBootstrap = `<script>window.$_TSR=window.$_TSR||{router:{manifest:{routes:{}},matches:[],dehydratedData:{},lastMatchId:undefined}};</script>`;
+    const tsrBootstrap = `<script>window.$_TSR=window.$_TSR||{};window.$_TSR.router=window.$_TSR.router||{manifest:{routes:{}},matches:[],dehydratedData:{},lastMatchId:undefined};window.$_TSR.buffer=window.$_TSR.buffer||[];window.$_TSR.h=window.$_TSR.h||(()=>{});window.$_TSR.e=window.$_TSR.e||(()=>{});window.$_TSR.c=window.$_TSR.c||(()=>{});window.$_TSR.p=window.$_TSR.p||((cb)=>{try{cb()}catch{}});</script>`;
     const rawReplacement = `${cssInjection}${tsrBootstrap}${scriptInjection}`;
     const escapedReplacement = rawReplacement.replace(/"/g, '\\"');
 
