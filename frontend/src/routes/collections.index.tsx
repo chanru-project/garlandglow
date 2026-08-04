@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { IMAGES } from "@/data/products";
+import { resolveApiUrl } from "@/lib/flower-api";
 import g1 from "@/assets/g1.jpg";
 import g2 from "@/assets/g2.avif";
 import g3 from "@/assets/g3.jpg";
@@ -398,7 +399,7 @@ function CollectionsIndex() {
 
     const loadGarlandThumbnails = async () => {
       try {
-        const response = await fetch("/api/flowers/collections/images");
+        const response = await fetch(resolveApiUrl("/api/flowers/collections/images"));
         if (!response.ok) {
           throw new Error("Failed to load collection images");
         }

@@ -118,7 +118,7 @@ async function request<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-function resolveApiUrl(path: string) {
+export function resolveApiUrl(path: string) {
   if (/^https?:\/\//i.test(path)) return path;
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;

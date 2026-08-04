@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Sparkles, Truck, Shield, Flower2, Star } from "lucide-react";
 import { IMAGES, PRODUCTS, GARLAND_COLLECTIONS, OCCASIONS, COLLECTION_IMAGES, type Product } from "@/data/products";
 import { ProductCard } from "@/components/site/ProductCard";
-import { fetchAllFlowers, fetchFlowersByCategory } from "@/lib/flower-api";
+import { fetchAllFlowers, fetchFlowersByCategory, resolveApiUrl } from "@/lib/flower-api";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -46,7 +46,7 @@ function Home() {
 
   useEffect(() => {
     let mounted = true;
-    fetch("/api/flowers/collections/images")
+    fetch(resolveApiUrl("/api/flowers/collections/images"))
       .then((r) => r.ok ? r.json() : Promise.reject(r))
       .then((data) => {
         if (!mounted) return;
