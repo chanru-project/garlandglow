@@ -6,7 +6,7 @@ import { getRouter } from "./router";
 const router = getRouter();
 
 const rootElement = document.getElementById("root");
-if (rootElement) {
+if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
