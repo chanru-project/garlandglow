@@ -1,6 +1,15 @@
 import nodemailer from "nodemailer";
 import { Order } from "../models/Order.js";
 
+function withTimeout(promise, timeoutMs, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    }),
+  ]);
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -173,20 +182,24 @@ export async function createOrder(req, res) {
     if (missingSmtp.length) {
       console.warn(`Missing SMTP env vars: ${missingSmtp.join(", ")}`);
     } else {
-      const transporter = nodemailer.createTransport({
-        service: process.env.SMTP_SERVICE || "gmail",
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-      await sendNotificationEmail(order, transporter);
+      try {
+        const transporter = nodemailer.createTransport({
+          service: process.env.SMTP_SERVICE || "gmail",
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+        await withTimeout(sendNotificationEmail(order, transporter), 8000, "Order email");
+      } catch (mailError) {
+        console.warn("Order notification email failed:", mailError);
+      }
     }
 
     // Send WhatsApp notifications: owner (configured) and customer (order phone)
     const whatsappResponses = { owner: null, customer: null };
     try {
-      const ownerResp = await sendWhatsappNotification(order);
+      const ownerResp = await withTimeout(sendWhatsappNotification(order), 8000, "Owner WhatsApp notification");
       whatsappResponses.owner = ownerResp || null;
     } catch (whatsappError) {
       console.warn("WhatsApp (owner) notification failed:", whatsappError);
@@ -196,7 +209,11 @@ export async function createOrder(req, res) {
       const customerWhats = normalizeForWhatsapp(order.phone) || null;
       if (customerWhats) {
         const customerMsg = `Hi ${encodeURIComponent(order.name)}, your order ${order.orderNumber} for ${encodeURIComponent(order.productName)} (Qty: ${order.quantity}) has been received. Total: ₹${order.total.toFixed(2)}. We'll contact you shortly.`;
-        const custResp = await sendWhatsappMessage(customerWhats, order, customerMsg);
+        const custResp = await withTimeout(
+          sendWhatsappMessage(customerWhats, order, customerMsg),
+          8000,
+          "Customer WhatsApp notification",
+        );
         whatsappResponses.customer = custResp || null;
       }
     } catch (custErr) {
@@ -204,9 +221,13 @@ export async function createOrder(req, res) {
     }
 
     if (whatsappResponses.owner || whatsappResponses.customer) {
-      order.whatsappSent = true;
-      order.whatsappResponse = whatsappResponses;
-      await order.save();
+      try {
+        order.whatsappSent = true;
+        order.whatsappResponse = whatsappResponses;
+        await withTimeout(order.save(), 5000, "Order save");
+      } catch (persistError) {
+        console.warn("Failed to persist WhatsApp response metadata:", persistError);
+      }
     }
 
     return res.status(201).json({

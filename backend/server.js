@@ -117,16 +117,22 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
       <p><strong>Reference image:</strong> ${escapeHtml(req.file ? req.file.originalname : "Not provided")}</p>
     `;
 
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      to: "duvixgarlandss@gmail.com",
-      subject: "New Custom Garland Request",
-      text,
-      html,
-      attachments,
-    });
-
-    return res.status(200).json({ message: "Email sent successfully." });
+    try {
+      await transporter.sendMail({
+        from: process.env.MAIL_FROM || process.env.SMTP_USER,
+        to: "duvixgarlandss@gmail.com",
+        subject: "New Custom Garland Request",
+        text,
+        html,
+        attachments,
+      });
+      return res.status(200).json({ message: "Request sent successfully." });
+    } catch (mailError) {
+      console.error("custom-request mail error:", mailError);
+      return res.status(202).json({
+        message: "Request saved, but email notification failed. We will contact you soon.",
+      });
+    }
   } catch (error) {
     console.error("custom-request error:", error);
     return res.status(500).json({ message: "Failed to send email." });
@@ -207,24 +213,31 @@ app.post("/api/contact", async (req, res) => {
       <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
     `;
 
-    await transporter.sendMail({
-      from: fromAddress,
-      to: supportEmail,
-      replyTo: email,
-      subject: `Contact form: ${subject || "General enquiry"}`,
-      text: supportText,
-      html: supportHtml,
-    });
+    try {
+      await transporter.sendMail({
+        from: fromAddress,
+        to: supportEmail,
+        replyTo: email,
+        subject: `Contact form: ${subject || "General enquiry"}`,
+        text: supportText,
+        html: supportHtml,
+      });
 
-    await transporter.sendMail({
-      from: fromAddress,
-      to: email,
-      subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
-      text: customerSummary,
-      html: customerHtml,
-    });
+      await transporter.sendMail({
+        from: fromAddress,
+        to: email,
+        subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
+        text: customerSummary,
+        html: customerHtml,
+      });
 
-    return res.status(200).json({ message: "Message sent successfully." });
+      return res.status(200).json({ message: "Message sent successfully." });
+    } catch (mailError) {
+      console.error("contact mail error:", mailError);
+      return res.status(202).json({
+        message: "Message received, but email delivery failed. We will contact you soon.",
+      });
+    }
   } catch (error) {
     console.error("contact error:", error);
     return res.status(500).json({ message: "Failed to send contact message." });
