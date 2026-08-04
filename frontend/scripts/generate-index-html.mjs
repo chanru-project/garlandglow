@@ -2,10 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const distDir = path.resolve('dist');
+const outputPublicDir = path.resolve('.output/public');
 const assetsDir = path.join(distDir, 'assets');
 
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
+}
+if (!fs.existsSync(outputPublicDir)) {
+  fs.mkdirSync(outputPublicDir, { recursive: true });
 }
 
 let cssFile = '';
@@ -62,9 +66,39 @@ const htmlContent = `<!DOCTYPE html>
   </body>
 </html>`;
 
+// Write to dist/
 fs.writeFileSync(path.join(distDir, 'index.html'), htmlContent);
 fs.writeFileSync(path.join(distDir, '200.html'), htmlContent);
 fs.writeFileSync(path.join(distDir, '404.html'), htmlContent);
+
+// Write to .output/public/ for Nitro server
+fs.writeFileSync(path.join(outputPublicDir, 'index.html'), htmlContent);
+fs.writeFileSync(path.join(outputPublicDir, '200.html'), htmlContent);
+fs.writeFileSync(path.join(outputPublicDir, '404.html'), htmlContent);
+
+// Patch Nitro's renderer template chunk if present
+const rendererChunkPath = path.resolve('.output/server/_chunks/renderer-template.mjs');
+if (fs.existsSync(rendererChunkPath)) {
+  let chunkContent = fs.readFileSync(rendererChunkPath, 'utf-8');
+  if (chunkContent.includes('/src/main.tsx')) {
+    const headInjection = cssFile ? `<link rel="stylesheet" href="/assets/${cssFile}">` : '';
+    const scriptInjection = jsFiles.map(file => `<script type="module" src="/assets/${file}"></script>`).join('');
+    
+    const targetString = String.raw`<script type=\"module\" src=\"/src/main.tsx\"><\/script>`;
+    const replacementString = `${headInjection}${scriptInjection}`
+      .replace(/"/g, '\\"')
+      .replace(/\//g, '\\/');
+
+    chunkContent = chunkContent.split(targetString).join(replacementString);
+    chunkContent = chunkContent.replace(
+      '<script type="module" src="/src/main.tsx"></script>',
+      `${headInjection}${scriptInjection}`
+    );
+
+    fs.writeFileSync(rendererChunkPath, chunkContent, 'utf-8');
+    console.log('Successfully patched .output/server/_chunks/renderer-template.mjs');
+  }
+}
 
 // Create dist/server/server.js compatibility wrapper pointing to Nitro's server entry
 const serverDir = path.join(distDir, 'server');
@@ -76,5 +110,4 @@ fs.writeFileSync(
   `// Compatibility entry for Nitro server build\nimport '../../.output/server/index.mjs';\n`
 );
 
-console.log('Successfully generated dist/index.html, dist/200.html, dist/404.html, and dist/server/server.js for deployment!');
-
+console.log('Successfully generated index.html in dist and .output/public for deployment!');
