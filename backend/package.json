@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "node ./scripts/dev.mjs",
-    "dev:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/restart-dev.ps1"
+    "dev:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/restart-dev.ps1",
+    "start": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
