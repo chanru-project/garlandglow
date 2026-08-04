@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-const contactEndpoint = `${apiBaseUrl}/api/contact`;
+const contactEndpoint = apiBaseUrl ? `${apiBaseUrl}/api/contact` : "/api/contact";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({

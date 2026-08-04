@@ -6,7 +6,7 @@ import {
 } from "@/data/products";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-const ssrFallbackApiBaseUrl = "http://localhost:5000";
+const ssrFallbackApiBaseUrl = import.meta.env.PROD ? "" : "http://localhost:5000";
 
 export class FlowerApiError extends Error {
   status: number;

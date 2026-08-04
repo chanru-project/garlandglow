@@ -238,8 +238,9 @@ async function startServer() {
       console.warn("MongoDB is unavailable; the server will continue in degraded mode.");
     }
 
-    const server = app.listen(PORT, () => {
-      console.log(`Custom request server running on http://localhost:${PORT}`);
+    const server = app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Custom request server running on http://0.0.0.0:${PORT}`);
+      console.log(`Health check available at http://0.0.0.0:${PORT}/api/health`);
     });
 
     server.on("error", (error) => {

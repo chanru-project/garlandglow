@@ -6,7 +6,7 @@ import Swal from "sweetalert2";
 import { toast } from "sonner";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-const customRequestEndpoint = `${apiBaseUrl}/api/custom-request`;
+const customRequestEndpoint = apiBaseUrl ? `${apiBaseUrl}/api/custom-request` : "/api/custom-request";
 let swalThemeInjected = false;
 
 function ensureSwalTheme() {

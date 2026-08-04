@@ -1,5 +1,5 @@
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-const ssrFallbackApiBaseUrl = "http://localhost:5000";
+const ssrFallbackApiBaseUrl = import.meta.env.PROD ? "" : "http://localhost:5000";
 
 function resolveApiUrl(path: string) {
   if (/^https?:\/\//i.test(path)) return path;
