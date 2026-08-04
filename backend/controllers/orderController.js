@@ -10,6 +10,15 @@ function withTimeout(promise, timeoutMs, label) {
   ]);
 }
 
+function getSmtpConfig() {
+  const smtpUser = String(process.env.SMTP_USER || "").trim();
+  const smtpPassRaw = String(process.env.SMTP_PASS || "").trim();
+  const smtpPass = smtpPassRaw.replace(/\s+/g, "");
+  const smtpService = String(process.env.SMTP_SERVICE || "gmail").trim() || "gmail";
+
+  return { smtpUser, smtpPass, smtpService };
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -178,16 +187,19 @@ export async function createOrder(req, res) {
       source: "buy now",
     });
 
-    const missingSmtp = ["SMTP_USER", "SMTP_PASS"].filter((key) => !process.env[key]);
+    const { smtpUser, smtpPass, smtpService } = getSmtpConfig();
+    const missingSmtp = [];
+    if (!smtpUser) missingSmtp.push("SMTP_USER");
+    if (!smtpPass) missingSmtp.push("SMTP_PASS");
     if (missingSmtp.length) {
       console.warn(`Missing SMTP env vars: ${missingSmtp.join(", ")}`);
     } else {
       try {
         const transporter = nodemailer.createTransport({
-          service: process.env.SMTP_SERVICE || "gmail",
+          service: smtpService,
           auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
+            user: smtpUser,
+            pass: smtpPass,
           },
         });
         await withTimeout(sendNotificationEmail(order, transporter), 8000, "Order email");

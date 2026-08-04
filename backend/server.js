@@ -25,6 +25,19 @@ const corsOrigins = (process.env.CORS_ORIGINS || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+function getSmtpConfig() {
+  const smtpUser = String(process.env.SMTP_USER || "").trim();
+  const smtpPassRaw = String(process.env.SMTP_PASS || "").trim();
+  const smtpPass = smtpPassRaw.replace(/\s+/g, "");
+  const smtpService = String(process.env.SMTP_SERVICE || "gmail").trim() || "gmail";
+
+  return {
+    smtpUser,
+    smtpPass,
+    smtpService,
+  };
+}
+
 app.use(cors({ origin: corsOrigins.length ? corsOrigins : true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -61,10 +74,10 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
       return res.status(400).json({ message: "Name and phone are required." });
     }
 
-    const missingSmtp = ["SMTP_USER", "SMTP_PASS"].filter((key) => {
-      const value = process.env[key];
-      return !value || !value.trim();
-    });
+    const { smtpUser, smtpPass, smtpService } = getSmtpConfig();
+    const missingSmtp = [];
+    if (!smtpUser) missingSmtp.push("SMTP_USER");
+    if (!smtpPass) missingSmtp.push("SMTP_PASS");
 
     if (missingSmtp.length) {
       console.error(`Missing SMTP env values: ${missingSmtp.join(", ")}`);
@@ -74,10 +87,10 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
     }
 
     const transporter = nodemailer.createTransport({
-      service: process.env.SMTP_SERVICE || "gmail",
+      service: smtpService,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
 
@@ -119,7 +132,7 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
 
     try {
       await transporter.sendMail({
-        from: process.env.MAIL_FROM || process.env.SMTP_USER,
+        from: process.env.MAIL_FROM || smtpUser,
         to: "duvixgarlandss@gmail.com",
         subject: "New Custom Garland Request",
         text,
@@ -147,10 +160,10 @@ app.post("/api/contact", async (req, res) => {
       return res.status(400).json({ message: "Name, email, and message are required." });
     }
 
-    const missingSmtp = ["SMTP_USER", "SMTP_PASS"].filter((key) => {
-      const value = process.env[key];
-      return !value || !value.trim();
-    });
+    const { smtpUser, smtpPass, smtpService } = getSmtpConfig();
+    const missingSmtp = [];
+    if (!smtpUser) missingSmtp.push("SMTP_USER");
+    if (!smtpPass) missingSmtp.push("SMTP_PASS");
 
     if (missingSmtp.length) {
       console.error(`Missing SMTP env values: ${missingSmtp.join(", ")}`);
@@ -160,15 +173,15 @@ app.post("/api/contact", async (req, res) => {
     }
 
     const transporter = nodemailer.createTransport({
-      service: process.env.SMTP_SERVICE || "gmail",
+      service: smtpService,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
 
     const supportEmail = process.env.CONTACT_TO || "duvixgarlandss@gmail.com";
-    const fromAddress = process.env.MAIL_FROM || process.env.SMTP_USER;
+    const fromAddress = process.env.MAIL_FROM || smtpUser;
 
     const customerSummary = [
       `Thanks for contacting Duvix Garlands & Events, ${name}.`,
