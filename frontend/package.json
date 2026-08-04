@@ -7,7 +7,7 @@
     "dev": "vite dev",
     "dev:server": "node ../backend/server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
-    "build": "vite build",
+    "build": "vite build && node -e \"require('fs').cpSync('.output/public', 'dist', {recursive: true})\" && node ./scripts/generate-index-html.mjs",
     "start": "node .output/server/index.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
