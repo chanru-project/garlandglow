@@ -13,29 +13,21 @@ if (!fs.existsSync(outputPublicDir)) {
 }
 
 let cssFile = '';
-let jsFiles = [];
+let entryJs = '';
 
 if (fs.existsSync(assetsDir)) {
   const files = fs.readdirSync(assetsDir);
   cssFile = files.find(f => f.startsWith('styles-') && f.endsWith('.css')) || files.find(f => f.endsWith('.css')) || '';
   
-  // Find all key bundle scripts
-  const indexJs = files.find(f => f.startsWith('index-') && f.endsWith('.js'));
-  const routerJs = files.find(f => f.startsWith('router-') && f.endsWith('.js'));
-  const routesJs = files.find(f => f.startsWith('routes-') && f.endsWith('.js'));
-  const mainJs = files.find(f => f.startsWith('main-') && f.endsWith('.js'));
-
-  if (mainJs) jsFiles.push(mainJs);
-  if (routerJs) jsFiles.push(routerJs);
-  if (routesJs) jsFiles.push(routesJs);
-  if (indexJs) jsFiles.push(indexJs);
-
-  if (jsFiles.length === 0) {
-    jsFiles = files.filter(f => f.endsWith('.js')).slice(0, 3);
-  }
+  entryJs = files.find(f => f.startsWith('main-') && f.endsWith('.js'))
+    || files.find(f => f.startsWith('index-') && f.endsWith('.js'))
+    || files.filter(f => f.endsWith('.js')).sort((a, b) => fs.statSync(path.join(assetsDir, b)).size - fs.statSync(path.join(assetsDir, a)).size)[0]
+    || '';
 }
 
-const scriptTags = jsFiles.map(file => `<script type="module" src="/assets/${file}"></script>`).join('\n    ');
+const scriptInjection = entryJs ? `<script type="module" src="/assets/${entryJs}"></script>` : '';
+const cssInjection = cssFile ? `<link rel="stylesheet" href="/assets/${cssFile}">` : '';
+
 
 const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -50,55 +42,55 @@ const htmlContent = `<!DOCTYPE html>
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    ${cssFile ? `<link rel="stylesheet" href="/assets/${cssFile}">` : ''}
+    ${cssInjection}
     <script>
-      window.__TSR__ = window.__TSR__ || {
-        manifest: { routes: {} },
-        matches: [],
-        stream: null
+      window.$_TSR = window.$_TSR || {
+        router: {
+          manifest: { routes: {} },
+          matches: [],
+          dehydratedData: {},
+          lastMatchId: undefined
+        }
       };
     </script>
   </head>
   <body>
-    <div id="app"></div>
     <div id="root"></div>
-    ${scriptTags}
+    ${scriptInjection}
   </body>
 </html>`;
 
-// Write to dist/
+// Write to dist/ for static SPA deployment
 fs.writeFileSync(path.join(distDir, 'index.html'), htmlContent);
 fs.writeFileSync(path.join(distDir, '200.html'), htmlContent);
 fs.writeFileSync(path.join(distDir, '404.html'), htmlContent);
 
-// Write to .output/public/ for Nitro server
+// Write to .output/public/ for Nitro server static fallback
 fs.writeFileSync(path.join(outputPublicDir, 'index.html'), htmlContent);
 fs.writeFileSync(path.join(outputPublicDir, '200.html'), htmlContent);
 fs.writeFileSync(path.join(outputPublicDir, '404.html'), htmlContent);
 
-// Patch Nitro's renderer template chunk if present
+// Patch Nitro's renderer template chunk if present so Nitro serves valid script references
 const rendererChunkPath = path.resolve('.output/server/_chunks/renderer-template.mjs');
 if (fs.existsSync(rendererChunkPath)) {
   let chunkContent = fs.readFileSync(rendererChunkPath, 'utf-8');
   if (chunkContent.includes('/src/main.tsx')) {
-    const headInjection = cssFile ? `<link rel="stylesheet" href="/assets/${cssFile}">` : '';
-    const scriptInjection = jsFiles.map(file => `<script type="module" src="/assets/${file}"></script>`).join('');
-    
-    const targetString = String.raw`<script type=\"module\" src=\"/src/main.tsx\"><\/script>`;
-    const replacementString = `${headInjection}${scriptInjection}`
-      .replace(/"/g, '\\"')
-      .replace(/\//g, '\\/');
+    const tsrBootstrap = `<script>window.$_TSR=window.$_TSR||{router:{manifest:{routes:{}},matches:[],dehydratedData:{},lastMatchId:undefined}};</script>`;
+    const rawReplacement = `${cssInjection}${tsrBootstrap}${scriptInjection}`;
+    const escapedReplacement = rawReplacement.replace(/"/g, '\\"');
 
-    chunkContent = chunkContent.split(targetString).join(replacementString);
-    chunkContent = chunkContent.replace(
-      '<script type="module" src="/src/main.tsx"></script>',
-      `${headInjection}${scriptInjection}`
-    );
+    const targetStr1 = '<script type="module" src="/src/main.tsx"></script>';
+    const targetStr2 = `<script type=\\"module\\" src=\\"/src/main.tsx\\"><\\/script>`;
+
+    chunkContent = chunkContent.split(targetStr1).join(rawReplacement);
+    chunkContent = chunkContent.split(targetStr2).join(escapedReplacement);
 
     fs.writeFileSync(rendererChunkPath, chunkContent, 'utf-8');
     console.log('Successfully patched .output/server/_chunks/renderer-template.mjs');
   }
 }
+
+
 
 // Create dist/server/server.js compatibility wrapper pointing to Nitro's server entry
 const serverDir = path.join(distDir, 'server');
@@ -111,3 +103,5 @@ fs.writeFileSync(
 );
 
 console.log('Successfully generated index.html in dist and .output/public for deployment!');
+
+
