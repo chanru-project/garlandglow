@@ -10,7 +10,7 @@
     "build": "vite build && node -e \"require('fs').cpSync('.output/public', 'dist', {recursive: true})\" && node ./scripts/generate-index-html.mjs",
     "start": "node .output/server/index.mjs",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "preview": "node .output/server/index.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

@@ -66,4 +66,15 @@ fs.writeFileSync(path.join(distDir, 'index.html'), htmlContent);
 fs.writeFileSync(path.join(distDir, '200.html'), htmlContent);
 fs.writeFileSync(path.join(distDir, '404.html'), htmlContent);
 
-console.log('Successfully generated dist/index.html, dist/200.html, and dist/404.html for static deployment!');
+// Create dist/server/server.js compatibility wrapper pointing to Nitro's server entry
+const serverDir = path.join(distDir, 'server');
+if (!fs.existsSync(serverDir)) {
+  fs.mkdirSync(serverDir, { recursive: true });
+}
+fs.writeFileSync(
+  path.join(serverDir, 'server.js'),
+  `// Compatibility entry for Nitro server build\nimport '../../.output/server/index.mjs';\n`
+);
+
+console.log('Successfully generated dist/index.html, dist/200.html, dist/404.html, and dist/server/server.js for deployment!');
+
