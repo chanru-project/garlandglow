@@ -1,0 +1,17 @@
+{
+  "name": "garlandglow-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ./scripts/dev.mjs",
+    "dev:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/restart-dev.ps1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.1",
+    "express": "^4.21.2",
+    "mongoose": "^8.18.1",
+    "multer": "^1.4.5-lts.2",
+    "nodemailer": "^6.10.1"
+  }
+}
