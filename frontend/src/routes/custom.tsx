@@ -4,6 +4,7 @@ import { useState } from "react";
 import confetti from "canvas-confetti";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
+import { RequestTimeoutError, fetchWithTimeout } from "@/lib/http";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const customRequestEndpoint = apiBaseUrl ? `${apiBaseUrl}/api/custom-request` : "/api/custom-request";
@@ -186,14 +187,17 @@ function CustomOrder() {
     try {
       const payload = new FormData(formElement);
 
-      const response = await fetch(customRequestEndpoint, {
+      const response = await fetchWithTimeout(customRequestEndpoint, {
         method: "POST",
         body: payload,
-      });
+      }, 20000);
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null);
-        const apiMessage = errorPayload?.errors?.[0]?.message || "Unable to submit your request right now.";
+        const apiMessage =
+          errorPayload?.message ||
+          errorPayload?.errors?.[0]?.message ||
+          "Unable to submit your request right now.";
         throw new Error(apiMessage);
       }
 
@@ -204,8 +208,10 @@ function CustomOrder() {
       formElement.reset();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
-      const description = error instanceof TypeError
-        ? "Could not reach the request server. Start the backend or set VITE_API_BASE_URL in frontend/.env."
+      const description = error instanceof RequestTimeoutError
+        ? "Request is taking too long. Please try again in a moment."
+        : error instanceof TypeError
+          ? "Could not reach the request server. Start the backend or set VITE_API_BASE_URL in frontend/.env."
         : error instanceof Error
           ? error.message
           : "Please try again in a moment.";

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Phone, Mail, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { RequestTimeoutError, fetchWithTimeout } from "@/lib/http";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const contactEndpoint = apiBaseUrl ? `${apiBaseUrl}/api/contact` : "/api/contact";
@@ -26,7 +27,7 @@ function Contact() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(contactEndpoint, {
+      const response = await fetchWithTimeout(contactEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -36,7 +37,7 @@ function Contact() {
           subject: String(formData.get("subject") || "").trim(),
           message: String(formData.get("message") || "").trim(),
         }),
-      });
+      }, 15000);
 
       const payload = await response.json().catch(() => null);
 
@@ -49,8 +50,10 @@ function Contact() {
       });
       formElement.reset();
     } catch (error) {
-      const description = error instanceof TypeError
-        ? "Could not reach the backend. Start the backend or set VITE_API_BASE_URL in frontend/.env."
+      const description = error instanceof RequestTimeoutError
+        ? "Server is taking too long to respond. Please try again in a moment."
+        : error instanceof TypeError
+          ? "Could not reach the backend. Start the backend or set VITE_API_BASE_URL in frontend/.env."
         : error instanceof Error
           ? error.message
           : "Please try again in a moment."

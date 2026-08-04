@@ -1,5 +1,6 @@
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const ssrFallbackApiBaseUrl = import.meta.env.PROD ? "" : "http://localhost:5000";
+import { fetchWithTimeout } from "@/lib/http";
 
 function resolveApiUrl(path: string) {
   if (/^https?:\/\//i.test(path)) return path;
@@ -14,7 +15,7 @@ function resolveApiUrl(path: string) {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(resolveApiUrl(path), init);
+  const response = await fetchWithTimeout(resolveApiUrl(path), init, 20000);
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
