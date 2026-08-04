@@ -28,14 +28,13 @@ services:
       - key: CORS_ORIGINS
         sync: false
 
-  # 2. Vite Frontend Static Site
+  # 2. TanStack Start Frontend Node Web Service
   - type: web
     name: garlandglow-frontend
-    env: static
+    env: node
     rootDir: frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    startCommand: npm start
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
