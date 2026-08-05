@@ -75,6 +75,37 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+// Test endpoint: GET /api/test-email?to=you@gmail.com (or defaults to MAIL_FROM)
+app.get("/api/test-email", async (req, res) => {
+  const { smtpUser, smtpPass } = getSmtpConfig();
+  if (!smtpUser || !smtpPass) {
+    return res.status(500).json({ ok: false, error: "SMTP_USER or SMTP_PASS not configured" });
+  }
+  const to = String(req.query.to || process.env.MAIL_FROM || smtpUser).trim();
+  const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || smtpUser}>`;
+  const transporter = createTransporter(smtpUser, smtpPass);
+  try {
+    console.log(`[test-email] Verifying SMTP connection...`);
+    await withTimeout(transporter.verify(), 8000, "test-email verify");
+    console.log(`[test-email] SMTP verified. Sending test email to ${to}...`);
+    const info = await withTimeout(
+      transporter.sendMail({
+        from: fromAddress,
+        to,
+        subject: "GarlandGlow email test",
+        text: `This is a test email from GarlandGlow backend.\nSent at: ${new Date().toISOString()}`,
+      }),
+      10000,
+      "test-email sendMail",
+    );
+    console.log(`[test-email] Sent. messageId=${info.messageId} response=${info.response}`);
+    return res.json({ ok: true, to, messageId: info.messageId, response: info.response });
+  } catch (err) {
+    console.error("[test-email] Failed:", err.message);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post("/api/custom-request", upload.single("referenceImage"), async (req, res) => {
   console.log("[custom-request] Form request received.");
   try {
@@ -148,7 +179,7 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
     console.log(`[custom-request] Preparing email for ${name} (${phone}) → to: ${notifyTo}`);
     try {
       console.log("[custom-request] Sending email...");
-      await withTimeout(
+      const info1 = await withTimeout(
         transporter.sendMail({
           from: fromAddress,
           to: notifyTo,
@@ -160,7 +191,7 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
         10000,
         "custom-request sendMail",
       );
-      console.log("[custom-request] Email sent successfully.");
+      console.log(`[custom-request] Email sent successfully. messageId=${info1.messageId} response=${info1.response}`);
       console.log("[custom-request] Sending API response.");
       return res.status(200).json({ message: "Request sent successfully." });
     } catch (mailError) {
@@ -248,7 +279,7 @@ app.post("/api/contact", async (req, res) => {
     console.log(`[contact] Preparing email for ${name} → support: ${supportEmail}, customer: ${email}`);
     try {
       console.log(`[contact] Sending support notification to ${supportEmail}...`);
-      await withTimeout(
+      const infoSupport = await withTimeout(
         transporter.sendMail({
           from: fromAddress,
           to: supportEmail,
@@ -260,10 +291,10 @@ app.post("/api/contact", async (req, res) => {
         10000,
         "contact support sendMail",
       );
-      console.log("[contact] Support email sent successfully.");
+      console.log(`[contact] Support email sent. messageId=${infoSupport.messageId} response=${infoSupport.response}`);
 
       console.log(`[contact] Sending customer confirmation to ${email}...`);
-      await withTimeout(
+      const infoCust = await withTimeout(
         transporter.sendMail({
           from: fromAddress,
           to: email,
@@ -274,7 +305,7 @@ app.post("/api/contact", async (req, res) => {
         10000,
         "contact customer sendMail",
       );
-      console.log("[contact] Customer email sent successfully.");
+      console.log(`[contact] Customer email sent. messageId=${infoCust.messageId} response=${infoCust.response}`);
 
       console.log("[contact] Sending API response.");
       return res.status(200).json({ message: "Message sent successfully." });

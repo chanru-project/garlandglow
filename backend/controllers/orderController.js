@@ -88,12 +88,13 @@ async function sendNotificationEmail(order, transporter) {
   const notifyTo = process.env.ORDER_NOTIFICATION_EMAIL || "duvixgarlandss@gmail.com";
   const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`;
   console.log(`[order] Sending notification email → to: ${notifyTo}`);
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: fromAddress,
     to: notifyTo,
     subject: `New Buy Now order ${order.orderNumber}`,
     html,
   });
+  console.log(`[order] Email sent. messageId=${info.messageId} response=${info.response}`);
 }
 
 async function sendWhatsappNotification(order) {
