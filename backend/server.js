@@ -31,11 +31,29 @@ function getSmtpConfig() {
   const smtpPass = smtpPassRaw.replace(/\s+/g, "");
   const smtpService = String(process.env.SMTP_SERVICE || "gmail").trim() || "gmail";
 
-  return {
-    smtpUser,
-    smtpPass,
-    smtpService,
-  };
+  return { smtpUser, smtpPass, smtpService };
+}
+
+function withTimeout(promise, timeoutMs, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs),
+    ),
+  ]);
+}
+
+// Uses explicit host/port so cloud hosts (Render) don't get blocked by SMTP service shortcuts
+function createTransporter(smtpUser, smtpPass) {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // STARTTLS
+    auth: { user: smtpUser, pass: smtpPass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+  });
 }
 
 app.use(cors({ origin: corsOrigins.length ? corsOrigins : true }));
@@ -58,6 +76,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.post("/api/custom-request", upload.single("referenceImage"), async (req, res) => {
+  console.log("[custom-request] Form request received.");
   try {
     const {
       name = "",
@@ -86,13 +105,7 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
       });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: smtpService,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    const transporter = createTransporter(smtpUser, smtpPass);
 
     const attachments = [];
     if (req.file) {
@@ -130,20 +143,29 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
       <p><strong>Reference image:</strong> ${escapeHtml(req.file ? req.file.originalname : "Not provided")}</p>
     `;
 
+    console.log(`[custom-request] Preparing email for ${name} (${phone})`);
     try {
-      await transporter.sendMail({
-        from: process.env.MAIL_FROM || smtpUser,
-        to: "duvixgarlandss@gmail.com",
-        subject: "New Custom Garland Request",
-        text,
-        html,
-        attachments,
-      });
+      console.log("[custom-request] Sending email...");
+      await withTimeout(
+        transporter.sendMail({
+          from: process.env.MAIL_FROM || smtpUser,
+          to: "duvixgarlandss@gmail.com",
+          subject: "New Custom Garland Request",
+          text,
+          html,
+          attachments,
+        }),
+        10000,
+        "custom-request sendMail",
+      );
+      console.log("[custom-request] Email sent successfully.");
+      console.log("[custom-request] Sending API response.");
       return res.status(200).json({ message: "Request sent successfully." });
     } catch (mailError) {
-      console.error("custom-request mail error:", mailError);
+      console.error("[custom-request] Email sending failed:", mailError.message);
+      console.log("[custom-request] Sending API response (email failed).");
       return res.status(202).json({
-        message: "Request saved, but email notification failed. We will contact you soon.",
+        message: "Request received, but email notification failed. We will contact you soon.",
       });
     }
   } catch (error) {
@@ -153,6 +175,7 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
 });
 
 app.post("/api/contact", async (req, res) => {
+  console.log("[contact] Form request received.");
   try {
     const { name = "", phone = "", email = "", subject = "", message = "" } = req.body;
 
@@ -172,13 +195,7 @@ app.post("/api/contact", async (req, res) => {
       });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: smtpService,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    const transporter = createTransporter(smtpUser, smtpPass);
 
     const supportEmail = process.env.CONTACT_TO || "duvixgarlandss@gmail.com";
     const fromAddress = process.env.MAIL_FROM || smtpUser;
@@ -226,27 +243,42 @@ app.post("/api/contact", async (req, res) => {
       <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
     `;
 
+    console.log(`[contact] Preparing email for ${name} (${email})`);
     try {
-      await transporter.sendMail({
-        from: fromAddress,
-        to: supportEmail,
-        replyTo: email,
-        subject: `Contact form: ${subject || "General enquiry"}`,
-        text: supportText,
-        html: supportHtml,
-      });
+      console.log("[contact] Sending support notification email...");
+      await withTimeout(
+        transporter.sendMail({
+          from: fromAddress,
+          to: supportEmail,
+          replyTo: email,
+          subject: `Contact form: ${subject || "General enquiry"}`,
+          text: supportText,
+          html: supportHtml,
+        }),
+        10000,
+        "contact support sendMail",
+      );
+      console.log("[contact] Support email sent successfully.");
 
-      await transporter.sendMail({
-        from: fromAddress,
-        to: email,
-        subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
-        text: customerSummary,
-        html: customerHtml,
-      });
+      console.log("[contact] Sending customer confirmation email...");
+      await withTimeout(
+        transporter.sendMail({
+          from: fromAddress,
+          to: email,
+          subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
+          text: customerSummary,
+          html: customerHtml,
+        }),
+        10000,
+        "contact customer sendMail",
+      );
+      console.log("[contact] Customer email sent successfully.");
 
+      console.log("[contact] Sending API response.");
       return res.status(200).json({ message: "Message sent successfully." });
     } catch (mailError) {
-      console.error("contact mail error:", mailError);
+      console.error("[contact] Email sending failed:", mailError.message);
+      console.log("[contact] Sending API response (email failed).");
       return res.status(202).json({
         message: "Message received, but email delivery failed. We will contact you soon.",
       });
@@ -262,6 +294,17 @@ async function startServer() {
     const dbConnection = await connectDB();
     if (!dbConnection) {
       console.warn("MongoDB is unavailable; the server will continue in degraded mode.");
+    }
+
+    // Verify SMTP connection at startup so misconfiguration is caught early in logs
+    const { smtpUser, smtpPass } = getSmtpConfig();
+    if (smtpUser && smtpPass) {
+      const verifyTransporter = createTransporter(smtpUser, smtpPass);
+      withTimeout(verifyTransporter.verify(), 10000, "SMTP verify")
+        .then(() => console.log("[SMTP] Connection verified successfully."))
+        .catch((err) => console.error("[SMTP] Connection verification failed:", err.message));
+    } else {
+      console.warn("[SMTP] SMTP_USER or SMTP_PASS not set — email will not work.");
     }
 
     const server = app.listen(PORT, "0.0.0.0", () => {

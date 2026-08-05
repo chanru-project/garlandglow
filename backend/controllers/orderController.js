@@ -14,9 +14,21 @@ function getSmtpConfig() {
   const smtpUser = String(process.env.SMTP_USER || "").trim();
   const smtpPassRaw = String(process.env.SMTP_PASS || "").trim();
   const smtpPass = smtpPassRaw.replace(/\s+/g, "");
-  const smtpService = String(process.env.SMTP_SERVICE || "gmail").trim() || "gmail";
 
-  return { smtpUser, smtpPass, smtpService };
+  return { smtpUser, smtpPass };
+}
+
+// Uses explicit host/port to avoid cloud SMTP connectivity issues
+function createTransporter(smtpUser, smtpPass) {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // STARTTLS
+    auth: { user: smtpUser, pass: smtpPass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+  });
 }
 
 function escapeHtml(value) {
@@ -144,6 +156,7 @@ async function sendWhatsappMessage(toWhatsApp, order, messageOverride) {
 }
 
 export async function createOrder(req, res) {
+  console.log("[order] Order form request received.");
   try {
     const {
       name = "",
@@ -187,24 +200,20 @@ export async function createOrder(req, res) {
       source: "buy now",
     });
 
-    const { smtpUser, smtpPass, smtpService } = getSmtpConfig();
+    const { smtpUser, smtpPass } = getSmtpConfig();
     const missingSmtp = [];
     if (!smtpUser) missingSmtp.push("SMTP_USER");
     if (!smtpPass) missingSmtp.push("SMTP_PASS");
     if (missingSmtp.length) {
-      console.warn(`Missing SMTP env vars: ${missingSmtp.join(", ")}`);
+      console.warn(`[order] Missing SMTP env vars: ${missingSmtp.join(", ")}`);
     } else {
       try {
-        const transporter = nodemailer.createTransport({
-          service: smtpService,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-        });
-        await withTimeout(sendNotificationEmail(order, transporter), 8000, "Order email");
+        console.log(`[order] Preparing notification email for order ${order.orderNumber}.`);
+        const transporter = createTransporter(smtpUser, smtpPass);
+        await withTimeout(sendNotificationEmail(order, transporter), 10000, "Order email");
+        console.log(`[order] Notification email sent for order ${order.orderNumber}.`);
       } catch (mailError) {
-        console.warn("Order notification email failed:", mailError);
+        console.warn("[order] Order notification email failed:", mailError.message);
       }
     }
 
