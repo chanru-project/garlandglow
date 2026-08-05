@@ -143,13 +143,15 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
       <p><strong>Reference image:</strong> ${escapeHtml(req.file ? req.file.originalname : "Not provided")}</p>
     `;
 
-    console.log(`[custom-request] Preparing email for ${name} (${phone})`);
+    const notifyTo = process.env.CUSTOM_REQUEST_TO || "duvixgarlandss@gmail.com";
+    const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || smtpUser}>`;
+    console.log(`[custom-request] Preparing email for ${name} (${phone}) → to: ${notifyTo}`);
     try {
       console.log("[custom-request] Sending email...");
       await withTimeout(
         transporter.sendMail({
-          from: process.env.MAIL_FROM || smtpUser,
-          to: "duvixgarlandss@gmail.com",
+          from: fromAddress,
+          to: notifyTo,
           subject: "New Custom Garland Request",
           text,
           html,
@@ -198,7 +200,7 @@ app.post("/api/contact", async (req, res) => {
     const transporter = createTransporter(smtpUser, smtpPass);
 
     const supportEmail = process.env.CONTACT_TO || "duvixgarlandss@gmail.com";
-    const fromAddress = process.env.MAIL_FROM || smtpUser;
+    const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || smtpUser}>`;
 
     const customerSummary = [
       `Thanks for contacting Duvix Garlands & Events, ${name}.`,
@@ -243,9 +245,9 @@ app.post("/api/contact", async (req, res) => {
       <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
     `;
 
-    console.log(`[contact] Preparing email for ${name} (${email})`);
+    console.log(`[contact] Preparing email for ${name} → support: ${supportEmail}, customer: ${email}`);
     try {
-      console.log("[contact] Sending support notification email...");
+      console.log(`[contact] Sending support notification to ${supportEmail}...`);
       await withTimeout(
         transporter.sendMail({
           from: fromAddress,
@@ -260,7 +262,7 @@ app.post("/api/contact", async (req, res) => {
       );
       console.log("[contact] Support email sent successfully.");
 
-      console.log("[contact] Sending customer confirmation email...");
+      console.log(`[contact] Sending customer confirmation to ${email}...`);
       await withTimeout(
         transporter.sendMail({
           from: fromAddress,

@@ -85,9 +85,12 @@ async function sendNotificationEmail(order, transporter) {
     <p><strong>Source:</strong> ${escapeHtml(order.source)}</p>
   `;
 
+  const notifyTo = process.env.ORDER_NOTIFICATION_EMAIL || "duvixgarlandss@gmail.com";
+  const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`;
+  console.log(`[order] Sending notification email → to: ${notifyTo}`);
   await transporter.sendMail({
-    from: process.env.MAIL_FROM || process.env.SMTP_USER,
-    to: process.env.ORDER_NOTIFICATION_EMAIL || "duvixgarlandss@gmail.com",
+    from: fromAddress,
+    to: notifyTo,
     subject: `New Buy Now order ${order.orderNumber}`,
     html,
   });
