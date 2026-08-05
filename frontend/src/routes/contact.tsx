@@ -74,7 +74,7 @@ function Contact() {
           {[
             { I: Phone, t: "Phone", v: "+91 8637686493" },
             { I: MessageCircle, t: "WhatsApp", v: "+91 9342886507" },
-            { I: Mail, t: "Email", v: "garlends@gmail.com" },
+            { I: Mail, t: "Email", v: "duvixgarlandss@gmail.com" },
             { I: MapPin, t: "Store", v: "Flower Market,Nilakottai,Dindigul-624208" },
           ].map(({ I, t, v }) => (
             <div key={t} className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
