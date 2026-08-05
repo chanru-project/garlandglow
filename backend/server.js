@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import express from "express";
 import multer from "multer";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { connectDB } from "./config/db.js";
@@ -25,13 +25,15 @@ const corsOrigins = (process.env.CORS_ORIGINS || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-function getSmtpConfig() {
-  const smtpUser = String(process.env.SMTP_USER || "").trim();
-  const smtpPassRaw = String(process.env.SMTP_PASS || "").trim();
-  const smtpPass = smtpPassRaw.replace(/\s+/g, "");
-  const smtpService = String(process.env.SMTP_SERVICE || "gmail").trim() || "gmail";
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY || "";
+  if (!apiKey) return null;
+  return new Resend(apiKey);
+}
 
-  return { smtpUser, smtpPass, smtpService };
+// from address — must be a domain verified in your Resend account
+function getFromAddress() {
+  return process.env.RESEND_FROM || "Duvix Garlands <onboarding@resend.dev>";
 }
 
 function withTimeout(promise, timeoutMs, label) {
@@ -41,19 +43,6 @@ function withTimeout(promise, timeoutMs, label) {
       setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs),
     ),
   ]);
-}
-
-// Uses explicit host/port so cloud hosts (Render) don't get blocked by SMTP service shortcuts
-function createTransporter(smtpUser, smtpPass) {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // STARTTLS
-    auth: { user: smtpUser, pass: smtpPass },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
 }
 
 app.use(cors({ origin: corsOrigins.length ? corsOrigins : true }));
@@ -75,31 +64,34 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-// Test endpoint: GET /api/test-email?to=you@gmail.com (or defaults to MAIL_FROM)
+// Test endpoint: GET /api/test-email?to=you@gmail.com
 app.get("/api/test-email", async (req, res) => {
-  const { smtpUser, smtpPass } = getSmtpConfig();
-  if (!smtpUser || !smtpPass) {
-    return res.status(500).json({ ok: false, error: "SMTP_USER or SMTP_PASS not configured" });
+  const resend = getResendClient();
+  if (!resend) {
+    return res.status(500).json({ ok: false, error: "RESEND_API_KEY not configured" });
   }
-  const to = String(req.query.to || process.env.MAIL_FROM || smtpUser).trim();
-  const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || smtpUser}>`;
-  const transporter = createTransporter(smtpUser, smtpPass);
+  const to = String(req.query.to || process.env.MAIL_FROM || "").trim();
+  if (!to) {
+    return res.status(400).json({ ok: false, error: "Provide ?to=email query param" });
+  }
   try {
-    console.log(`[test-email] Verifying SMTP connection...`);
-    await withTimeout(transporter.verify(), 8000, "test-email verify");
-    console.log(`[test-email] SMTP verified. Sending test email to ${to}...`);
-    const info = await withTimeout(
-      transporter.sendMail({
-        from: fromAddress,
+    console.log(`[test-email] Sending test email to ${to}...`);
+    const { data, error } = await withTimeout(
+      resend.emails.send({
+        from: getFromAddress(),
         to,
         subject: "GarlandGlow email test",
         text: `This is a test email from GarlandGlow backend.\nSent at: ${new Date().toISOString()}`,
       }),
-      10000,
-      "test-email sendMail",
+      15000,
+      "test-email send",
     );
-    console.log(`[test-email] Sent. messageId=${info.messageId} response=${info.response}`);
-    return res.json({ ok: true, to, messageId: info.messageId, response: info.response });
+    if (error) {
+      console.error("[test-email] Resend error:", error);
+      return res.status(500).json({ ok: false, error });
+    }
+    console.log(`[test-email] Sent. id=${data.id}`);
+    return res.json({ ok: true, to, id: data.id });
   } catch (err) {
     console.error("[test-email] Failed:", err.message);
     return res.status(500).json({ ok: false, error: err.message });
@@ -124,42 +116,19 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
       return res.status(400).json({ message: "Name and phone are required." });
     }
 
-    const { smtpUser, smtpPass, smtpService } = getSmtpConfig();
-    const missingSmtp = [];
-    if (!smtpUser) missingSmtp.push("SMTP_USER");
-    if (!smtpPass) missingSmtp.push("SMTP_PASS");
-
-    if (missingSmtp.length) {
-      console.error(`Missing SMTP env values: ${missingSmtp.join(", ")}`);
-      return res.status(500).json({
-        message: "Email service is not configured. Set SMTP_USER and SMTP_PASS in backend/.env and restart backend.",
-      });
+    const resend = getResendClient();
+    if (!resend) {
+      console.error("[custom-request] RESEND_API_KEY not configured.");
+      return res.status(500).json({ message: "Email service is not configured." });
     }
-
-    const transporter = createTransporter(smtpUser, smtpPass);
 
     const attachments = [];
     if (req.file) {
       attachments.push({
         filename: req.file.originalname,
         content: req.file.buffer,
-        contentType: req.file.mimetype,
       });
     }
-
-    const text = [
-      "New custom garland request",
-      "",
-      `Name: ${name}`,
-      `Phone: ${phone}`,
-      `Flower type: ${flower}`,
-      `Preferred color: ${color}`,
-      `Size: ${size}`,
-      `Budget: ${budget}`,
-      `Occasion: ${occasion}`,
-      `Special instructions: ${notes || "N/A"}`,
-      `Reference image: ${req.file ? req.file.originalname : "Not provided"}`,
-    ].join("\n");
 
     const html = `
       <h2>New custom garland request</h2>
@@ -175,28 +144,25 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
     `;
 
     const notifyTo = process.env.CUSTOM_REQUEST_TO || "duvixgarlandss@gmail.com";
-    const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || smtpUser}>`;
     console.log(`[custom-request] Preparing email for ${name} (${phone}) → to: ${notifyTo}`);
     try {
-      console.log("[custom-request] Sending email...");
-      const info1 = await withTimeout(
-        transporter.sendMail({
-          from: fromAddress,
+      console.log("[custom-request] Sending email via Resend...");
+      const { data, error } = await withTimeout(
+        resend.emails.send({
+          from: getFromAddress(),
           to: notifyTo,
           subject: "New Custom Garland Request",
-          text,
           html,
           attachments,
         }),
-        10000,
-        "custom-request sendMail",
+        15000,
+        "custom-request send",
       );
-      console.log(`[custom-request] Email sent successfully. messageId=${info1.messageId} response=${info1.response}`);
-      console.log("[custom-request] Sending API response.");
+      if (error) throw new Error(JSON.stringify(error));
+      console.log(`[custom-request] Email sent successfully. id=${data.id}`);
       return res.status(200).json({ message: "Request sent successfully." });
     } catch (mailError) {
       console.error("[custom-request] Email sending failed:", mailError.message);
-      console.log("[custom-request] Sending API response (email failed).");
       return res.status(202).json({
         message: "Request received, but email notification failed. We will contact you soon.",
       });
@@ -216,22 +182,79 @@ app.post("/api/contact", async (req, res) => {
       return res.status(400).json({ message: "Name, email, and message are required." });
     }
 
-    const { smtpUser, smtpPass, smtpService } = getSmtpConfig();
-    const missingSmtp = [];
-    if (!smtpUser) missingSmtp.push("SMTP_USER");
-    if (!smtpPass) missingSmtp.push("SMTP_PASS");
-
-    if (missingSmtp.length) {
-      console.error(`Missing SMTP env values: ${missingSmtp.join(", ")}`);
-      return res.status(500).json({
-        message: "Email service is not configured. Set SMTP_USER and SMTP_PASS in backend/.env and restart backend.",
-      });
+    const resend = getResendClient();
+    if (!resend) {
+      console.error("[contact] RESEND_API_KEY not configured.");
+      return res.status(500).json({ message: "Email service is not configured." });
     }
 
-    const transporter = createTransporter(smtpUser, smtpPass);
-
     const supportEmail = process.env.CONTACT_TO || "duvixgarlandss@gmail.com";
-    const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || smtpUser}>`;
+    const from = getFromAddress();
+
+    const supportHtml = `
+      <h2>New contact form submission</h2>
+      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Phone:</strong> ${escapeHtml(phone || "N/A")}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Subject:</strong> ${escapeHtml(subject || "General enquiry")}</p>
+      <p><strong>Message:</strong></p>
+      <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
+    `;
+
+    const customerHtml = `
+      <h2>Thanks for contacting Duvix Garlands &amp; Events, ${escapeHtml(name)}</h2>
+      <p>We have received your message and will reply as soon as possible.</p>
+      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Phone:</strong> ${escapeHtml(phone || "N/A")}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Subject:</strong> ${escapeHtml(subject || "General enquiry")}</p>
+      <p><strong>Message:</strong></p>
+      <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
+    `;
+
+    console.log(`[contact] Preparing email for ${name} → support: ${supportEmail}, customer: ${email}`);
+    try {
+      console.log(`[contact] Sending support notification to ${supportEmail}...`);
+      const { data: d1, error: e1 } = await withTimeout(
+        resend.emails.send({
+          from,
+          to: supportEmail,
+          reply_to: email,
+          subject: `Contact form: ${subject || "General enquiry"}`,
+          html: supportHtml,
+        }),
+        15000,
+        "contact support send",
+      );
+      if (e1) throw new Error(JSON.stringify(e1));
+      console.log(`[contact] Support email sent. id=${d1.id}`);
+
+      console.log(`[contact] Sending customer confirmation to ${email}...`);
+      const { data: d2, error: e2 } = await withTimeout(
+        resend.emails.send({
+          from,
+          to: email,
+          subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
+          html: customerHtml,
+        }),
+        15000,
+        "contact customer send",
+      );
+      if (e2) throw new Error(JSON.stringify(e2));
+      console.log(`[contact] Customer email sent. id=${d2.id}`);
+
+      return res.status(200).json({ message: "Message sent successfully." });
+    } catch (mailError) {
+      console.error("[contact] Email sending failed:", mailError.message);
+      return res.status(202).json({
+        message: "Message received, but email delivery failed. We will contact you soon.",
+      });
+    }
+  } catch (error) {
+    console.error("contact error:", error);
+    return res.status(500).json({ message: "Failed to send contact message." });
+  }
+});
 
     const customerSummary = [
       `Thanks for contacting Duvix Garlands & Events, ${name}.`,
@@ -329,15 +352,11 @@ async function startServer() {
       console.warn("MongoDB is unavailable; the server will continue in degraded mode.");
     }
 
-    // Verify SMTP connection at startup so misconfiguration is caught early in logs
-    const { smtpUser, smtpPass } = getSmtpConfig();
-    if (smtpUser && smtpPass) {
-      const verifyTransporter = createTransporter(smtpUser, smtpPass);
-      withTimeout(verifyTransporter.verify(), 10000, "SMTP verify")
-        .then(() => console.log("[SMTP] Connection verified successfully."))
-        .catch((err) => console.error("[SMTP] Connection verification failed:", err.message));
+    // Verify RESEND_API_KEY is present at startup
+    if (process.env.RESEND_API_KEY) {
+      console.log("[Resend] RESEND_API_KEY is set. Email service ready.");
     } else {
-      console.warn("[SMTP] SMTP_USER or SMTP_PASS not set — email will not work.");
+      console.warn("[Resend] RESEND_API_KEY not set — email will not work.");
     }
 
     const server = app.listen(PORT, "0.0.0.0", () => {

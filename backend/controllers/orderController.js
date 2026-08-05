@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { Order } from "../models/Order.js";
 
 function withTimeout(promise, timeoutMs, label) {
@@ -11,24 +11,18 @@ function withTimeout(promise, timeoutMs, label) {
 }
 
 function getSmtpConfig() {
-  const smtpUser = String(process.env.SMTP_USER || "").trim();
-  const smtpPassRaw = String(process.env.SMTP_PASS || "").trim();
-  const smtpPass = smtpPassRaw.replace(/\s+/g, "");
-
-  return { smtpUser, smtpPass };
+  // kept for backwards compat; RESEND_API_KEY is the active email config
+  return {};
 }
 
-// Uses explicit host/port to avoid cloud SMTP connectivity issues
-function createTransporter(smtpUser, smtpPass) {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // STARTTLS
-    auth: { user: smtpUser, pass: smtpPass },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY || "";
+  if (!apiKey) return null;
+  return new Resend(apiKey);
+}
+
+function getFromAddress() {
+  return process.env.RESEND_FROM || "Duvix Garlands <onboarding@resend.dev>";
 }
 
 function escapeHtml(value) {
@@ -70,7 +64,12 @@ function getWhatsappConfig() {
   return { accountSid, authToken, whatsappFrom, whatsappTo };
 }
 
-async function sendNotificationEmail(order, transporter) {
+async function sendNotificationEmail(order) {
+  const resend = getResendClient();
+  if (!resend) {
+    console.warn("[order] RESEND_API_KEY not set, skipping email.");
+    return;
+  }
   const html = `
     <h2>New Buy Now order</h2>
     <p><strong>Order number:</strong> ${escapeHtml(order.orderNumber)}</p>
@@ -86,15 +85,15 @@ async function sendNotificationEmail(order, transporter) {
   `;
 
   const notifyTo = process.env.ORDER_NOTIFICATION_EMAIL || "duvixgarlandss@gmail.com";
-  const fromAddress = `"Duvix Garlands" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`;
   console.log(`[order] Sending notification email → to: ${notifyTo}`);
-  const info = await transporter.sendMail({
-    from: fromAddress,
+  const { data, error } = await resend.emails.send({
+    from: getFromAddress(),
     to: notifyTo,
     subject: `New Buy Now order ${order.orderNumber}`,
     html,
   });
-  console.log(`[order] Email sent. messageId=${info.messageId} response=${info.response}`);
+  if (error) throw new Error(JSON.stringify(error));
+  console.log(`[order] Email sent. id=${data.id}`);
 }
 
 async function sendWhatsappNotification(order) {
@@ -204,21 +203,11 @@ export async function createOrder(req, res) {
       source: "buy now",
     });
 
-    const { smtpUser, smtpPass } = getSmtpConfig();
-    const missingSmtp = [];
-    if (!smtpUser) missingSmtp.push("SMTP_USER");
-    if (!smtpPass) missingSmtp.push("SMTP_PASS");
-    if (missingSmtp.length) {
-      console.warn(`[order] Missing SMTP env vars: ${missingSmtp.join(", ")}`);
-    } else {
-      try {
-        console.log(`[order] Preparing notification email for order ${order.orderNumber}.`);
-        const transporter = createTransporter(smtpUser, smtpPass);
-        await withTimeout(sendNotificationEmail(order, transporter), 10000, "Order email");
-        console.log(`[order] Notification email sent for order ${order.orderNumber}.`);
-      } catch (mailError) {
-        console.warn("[order] Order notification email failed:", mailError.message);
-      }
+    try {
+      console.log(`[order] Preparing notification email for order ${order.orderNumber}.`);
+      await withTimeout(sendNotificationEmail(order), 15000, "Order email");
+    } catch (mailError) {
+      console.warn("[order] Order notification email failed:", mailError.message);
     }
 
     // Send WhatsApp notifications: owner (configured) and customer (order phone)
