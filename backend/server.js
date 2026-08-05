@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import express from "express";
 import multer from "multer";
-import { Resend } from "resend";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { connectDB } from "./config/db.js";
@@ -28,12 +27,39 @@ const corsOrigins = (process.env.CORS_ORIGINS || "")
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY || "";
   if (!apiKey) return null;
-  return new Resend(apiKey);
+  return apiKey;
 }
 
 // from address — must be a domain verified in your Resend account
 function getFromAddress() {
   return process.env.RESEND_FROM || "Duvix Garlands <onboarding@resend.dev>";
+}
+
+// Calls Resend REST API directly — no npm package needed
+async function sendEmail({ to, subject, html, attachments }) {
+  const apiKey = getResendClient();
+  if (!apiKey) throw new Error("RESEND_API_KEY not configured");
+
+  const body = { from: getFromAddress(), to, subject, html };
+  if (attachments && attachments.length) {
+    body.attachments = attachments.map((a) => ({
+      filename: a.filename,
+      content: a.content.toString("base64"),
+    }));
+  }
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+  return data;
 }
 
 function withTimeout(promise, timeoutMs, label) {
@@ -66,8 +92,7 @@ app.get("/api/health", (_req, res) => {
 
 // Test endpoint: GET /api/test-email?to=you@gmail.com
 app.get("/api/test-email", async (req, res) => {
-  const resend = getResendClient();
-  if (!resend) {
+  if (!getResendClient()) {
     return res.status(500).json({ ok: false, error: "RESEND_API_KEY not configured" });
   }
   const to = String(req.query.to || process.env.MAIL_FROM || "").trim();
@@ -76,20 +101,15 @@ app.get("/api/test-email", async (req, res) => {
   }
   try {
     console.log(`[test-email] Sending test email to ${to}...`);
-    const { data, error } = await withTimeout(
-      resend.emails.send({
-        from: getFromAddress(),
+    const data = await withTimeout(
+      sendEmail({
         to,
         subject: "GarlandGlow email test",
-        text: `This is a test email from GarlandGlow backend.\nSent at: ${new Date().toISOString()}`,
+        html: `<p>This is a test email from GarlandGlow backend.<br>Sent at: ${new Date().toISOString()}</p>`,
       }),
       15000,
       "test-email send",
     );
-    if (error) {
-      console.error("[test-email] Resend error:", error);
-      return res.status(500).json({ ok: false, error });
-    }
     console.log(`[test-email] Sent. id=${data.id}`);
     return res.json({ ok: true, to, id: data.id });
   } catch (err) {
@@ -116,8 +136,7 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
       return res.status(400).json({ message: "Name and phone are required." });
     }
 
-    const resend = getResendClient();
-    if (!resend) {
+    if (!getResendClient()) {
       console.error("[custom-request] RESEND_API_KEY not configured.");
       return res.status(500).json({ message: "Email service is not configured." });
     }
@@ -147,18 +166,11 @@ app.post("/api/custom-request", upload.single("referenceImage"), async (req, res
     console.log(`[custom-request] Preparing email for ${name} (${phone}) → to: ${notifyTo}`);
     try {
       console.log("[custom-request] Sending email via Resend...");
-      const { data, error } = await withTimeout(
-        resend.emails.send({
-          from: getFromAddress(),
-          to: notifyTo,
-          subject: "New Custom Garland Request",
-          html,
-          attachments,
-        }),
+      const data = await withTimeout(
+        sendEmail({ to: notifyTo, subject: "New Custom Garland Request", html, attachments }),
         15000,
         "custom-request send",
       );
-      if (error) throw new Error(JSON.stringify(error));
       console.log(`[custom-request] Email sent successfully. id=${data.id}`);
       return res.status(200).json({ message: "Request sent successfully." });
     } catch (mailError) {
@@ -182,8 +194,7 @@ app.post("/api/contact", async (req, res) => {
       return res.status(400).json({ message: "Name, email, and message are required." });
     }
 
-    const resend = getResendClient();
-    if (!resend) {
+    if (!getResendClient()) {
       console.error("[contact] RESEND_API_KEY not configured.");
       return res.status(500).json({ message: "Email service is not configured." });
     }
@@ -212,38 +223,36 @@ app.post("/api/contact", async (req, res) => {
       <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
     `;
 
-    console.log(`[contact] Preparing email for ${name} → support: ${supportEmail}, customer: ${email}`);
     try {
       console.log(`[contact] Sending support notification to ${supportEmail}...`);
-      const { data: d1, error: e1 } = await withTimeout(
-        resend.emails.send({
-          from,
+      const d1 = await withTimeout(
+        sendEmail({
           to: supportEmail,
-          reply_to: email,
           subject: `Contact form: ${subject || "General enquiry"}`,
           html: supportHtml,
         }),
         15000,
         "contact support send",
       );
-      if (e1) throw new Error(JSON.stringify(e1));
       console.log(`[contact] Support email sent. id=${d1.id}`);
 
       // Customer confirmation requires a verified domain — skip gracefully if no domain configured
       if (process.env.RESEND_FROM) {
         console.log(`[contact] Sending customer confirmation to ${email}...`);
-        const { data: d2, error: e2 } = await withTimeout(
-          resend.emails.send({
-            from,
-            to: email,
-            subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
-            html: customerHtml,
-          }),
-          15000,
-          "contact customer send",
-        );
-        if (e2) console.warn(`[contact] Customer confirmation failed: ${JSON.stringify(e2)}`);
-        else console.log(`[contact] Customer email sent. id=${d2.id}`);
+        try {
+          const d2 = await withTimeout(
+            sendEmail({
+              to: email,
+              subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
+              html: customerHtml,
+            }),
+            15000,
+            "contact customer send",
+          );
+          console.log(`[contact] Customer email sent. id=${d2.id}`);
+        } catch (custErr) {
+          console.warn(`[contact] Customer confirmation failed: ${custErr.message}`);
+        }
       } else {
         console.log("[contact] Skipping customer confirmation — RESEND_FROM not set (no verified domain).");
       }
@@ -251,95 +260,6 @@ app.post("/api/contact", async (req, res) => {
       return res.status(200).json({ message: "Message sent successfully." });
     } catch (mailError) {
       console.error("[contact] Email sending failed:", mailError.message);
-      return res.status(202).json({
-        message: "Message received, but email delivery failed. We will contact you soon.",
-      });
-    }
-  } catch (error) {
-    console.error("contact error:", error);
-    return res.status(500).json({ message: "Failed to send contact message." });
-  }
-});
-
-    const customerSummary = [
-      `Thanks for contacting Duvix Garlands & Events, ${name}.`,
-      "",
-      "We have received your message and will reply as soon as possible.",
-      "",
-      `Name: ${name}`,
-      `Phone: ${phone || "N/A"}`,
-      `Email: ${email}`,
-      `Subject: ${subject || "General enquiry"}`,
-      `Message: ${message}`,
-    ].join("\n");
-
-    const supportText = [
-      "New contact form submission",
-      "",
-      `Name: ${name}`,
-      `Phone: ${phone || "N/A"}`,
-      `Email: ${email}`,
-      `Subject: ${subject || "General enquiry"}`,
-      `Message: ${message}`,
-    ].join("\n");
-
-    const supportHtml = `
-      <h2>New contact form submission</h2>
-      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-      <p><strong>Phone:</strong> ${escapeHtml(phone || "N/A")}</p>
-      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-      <p><strong>Subject:</strong> ${escapeHtml(subject || "General enquiry")}</p>
-      <p><strong>Message:</strong></p>
-      <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
-    `;
-
-    const customerHtml = `
-      <h2>Thanks for contacting Duvix Garlands & Events, ${escapeHtml(name)}</h2>
-      <p>We have received your message and will reply as soon as possible.</p>
-      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-      <p><strong>Phone:</strong> ${escapeHtml(phone || "N/A")}</p>
-      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-      <p><strong>Subject:</strong> ${escapeHtml(subject || "General enquiry")}</p>
-      <p><strong>Message:</strong></p>
-      <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
-    `;
-
-    console.log(`[contact] Preparing email for ${name} → support: ${supportEmail}, customer: ${email}`);
-    try {
-      console.log(`[contact] Sending support notification to ${supportEmail}...`);
-      const infoSupport = await withTimeout(
-        transporter.sendMail({
-          from: fromAddress,
-          to: supportEmail,
-          replyTo: email,
-          subject: `Contact form: ${subject || "General enquiry"}`,
-          text: supportText,
-          html: supportHtml,
-        }),
-        10000,
-        "contact support sendMail",
-      );
-      console.log(`[contact] Support email sent. messageId=${infoSupport.messageId} response=${infoSupport.response}`);
-
-      console.log(`[contact] Sending customer confirmation to ${email}...`);
-      const infoCust = await withTimeout(
-        transporter.sendMail({
-          from: fromAddress,
-          to: email,
-          subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
-          text: customerSummary,
-          html: customerHtml,
-        }),
-        10000,
-        "contact customer sendMail",
-      );
-      console.log(`[contact] Customer email sent. messageId=${infoCust.messageId} response=${infoCust.response}`);
-
-      console.log("[contact] Sending API response.");
-      return res.status(200).json({ message: "Message sent successfully." });
-    } catch (mailError) {
-      console.error("[contact] Email sending failed:", mailError.message);
-      console.log("[contact] Sending API response (email failed).");
       return res.status(202).json({
         message: "Message received, but email delivery failed. We will contact you soon.",
       });

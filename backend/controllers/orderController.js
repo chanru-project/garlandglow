@@ -1,4 +1,3 @@
-import { Resend } from "resend";
 import { Order } from "../models/Order.js";
 
 function withTimeout(promise, timeoutMs, label) {
@@ -10,19 +9,30 @@ function withTimeout(promise, timeoutMs, label) {
   ]);
 }
 
-function getSmtpConfig() {
-  // kept for backwards compat; RESEND_API_KEY is the active email config
-  return {};
-}
-
 function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY || "";
-  if (!apiKey) return null;
-  return new Resend(apiKey);
+  return process.env.RESEND_API_KEY || null;
 }
 
 function getFromAddress() {
   return process.env.RESEND_FROM || "Duvix Garlands <onboarding@resend.dev>";
+}
+
+async function sendEmail({ to, subject, html }) {
+  const apiKey = getResendClient();
+  if (!apiKey) throw new Error("RESEND_API_KEY not configured");
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: getFromAddress(), to, subject, html }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+  return data;
 }
 
 function escapeHtml(value) {
@@ -65,8 +75,7 @@ function getWhatsappConfig() {
 }
 
 async function sendNotificationEmail(order) {
-  const resend = getResendClient();
-  if (!resend) {
+  if (!getResendClient()) {
     console.warn("[order] RESEND_API_KEY not set, skipping email.");
     return;
   }
@@ -86,13 +95,11 @@ async function sendNotificationEmail(order) {
 
   const notifyTo = process.env.ORDER_NOTIFICATION_EMAIL || "duvixgarlandss@gmail.com";
   console.log(`[order] Sending notification email → to: ${notifyTo}`);
-  const { data, error } = await resend.emails.send({
-    from: getFromAddress(),
+  const data = await sendEmail({
     to: notifyTo,
     subject: `New Buy Now order ${order.orderNumber}`,
     html,
   });
-  if (error) throw new Error(JSON.stringify(error));
   console.log(`[order] Email sent. id=${data.id}`);
 }
 
