@@ -229,19 +229,24 @@ app.post("/api/contact", async (req, res) => {
       if (e1) throw new Error(JSON.stringify(e1));
       console.log(`[contact] Support email sent. id=${d1.id}`);
 
-      console.log(`[contact] Sending customer confirmation to ${email}...`);
-      const { data: d2, error: e2 } = await withTimeout(
-        resend.emails.send({
-          from,
-          to: email,
-          subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
-          html: customerHtml,
-        }),
-        15000,
-        "contact customer send",
-      );
-      if (e2) throw new Error(JSON.stringify(e2));
-      console.log(`[contact] Customer email sent. id=${d2.id}`);
+      // Customer confirmation requires a verified domain — skip gracefully if no domain configured
+      if (process.env.RESEND_FROM) {
+        console.log(`[contact] Sending customer confirmation to ${email}...`);
+        const { data: d2, error: e2 } = await withTimeout(
+          resend.emails.send({
+            from,
+            to: email,
+            subject: `Thanks for contacting Duvix Garlands & Events, ${name}`,
+            html: customerHtml,
+          }),
+          15000,
+          "contact customer send",
+        );
+        if (e2) console.warn(`[contact] Customer confirmation failed: ${JSON.stringify(e2)}`);
+        else console.log(`[contact] Customer email sent. id=${d2.id}`);
+      } else {
+        console.log("[contact] Skipping customer confirmation — RESEND_FROM not set (no verified domain).");
+      }
 
       return res.status(200).json({ message: "Message sent successfully." });
     } catch (mailError) {
