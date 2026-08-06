@@ -123,8 +123,8 @@ function HeaderSearchBar({ isMobile = false }: { isMobile?: boolean }) {
 
       {/* Live Search Results Popup Dropdown */}
       {isOpen && query.trim().length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border/70 bg-white shadow-2xl ring-1 ring-black/5">
-          <div className="max-h-[350px] overflow-y-auto md:max-h-[450px]">
+        <div className="absolute left-0 top-full z-[9999] mt-2 w-full overflow-hidden rounded-2xl border border-border/70 bg-white shadow-2xl ring-1 ring-black/5">
+          <div className="max-h-[400px] overflow-y-auto overscroll-contain">
             {results.length > 0 ? (
             <div className="space-y-1 p-2">
               <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -189,7 +189,7 @@ export function Header() {
   const { cartCount, wishlist, isAuthenticated, currentUser, signOut } = useShop();
 
   return (
-    <header className="sticky top-0 z-40 w-full overflow-x-hidden border-b border-border/60 bg-background/95 shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-lg">
+    <header className="sticky top-0 z-40 w-full overflow-visible border-b border-border/60 bg-background/95 shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-lg">
       <div className="hidden md:flex items-center justify-between border-b border-border/40 bg-primary px-6 py-2 text-xs text-primary-foreground">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" /> +91 8637686493</span>

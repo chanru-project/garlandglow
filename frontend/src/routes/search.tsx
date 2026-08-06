@@ -221,8 +221,8 @@ function SearchPage() {
             </form>
 
             {isDropdownOpen && liveQuery && (
-              <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border/70 bg-white shadow-2xl ring-1 ring-black/5">
-                <div className="max-h-[350px] overflow-y-auto md:max-h-[450px]">
+              <div className="absolute left-0 top-full z-[9999] mt-2 w-full overflow-hidden rounded-2xl border border-border/70 bg-white shadow-2xl ring-1 ring-black/5">
+                <div className="max-h-[400px] overflow-y-auto overscroll-contain">
                   {liveResults.length > 0 ? (
                     <div className="p-2">
                       <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
