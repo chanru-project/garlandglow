@@ -123,9 +123,10 @@ function HeaderSearchBar({ isMobile = false }: { isMobile?: boolean }) {
 
       {/* Live Search Results Popup Dropdown */}
       {isOpen && query.trim().length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 overflow-hidden rounded-2xl border border-border/80 bg-background/95 p-2 shadow-2xl backdrop-blur-md">
-          {results.length > 0 ? (
-            <div className="space-y-1">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border/70 bg-white shadow-2xl ring-1 ring-black/5">
+          <div className="max-h-[350px] overflow-y-auto md:max-h-[450px]">
+            {results.length > 0 ? (
+            <div className="space-y-1 p-2">
               <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Matching Products ({results.length})
               </div>
@@ -135,18 +136,18 @@ function HeaderSearchBar({ isMobile = false }: { isMobile?: boolean }) {
                   to="/product/$id"
                   params={{ id: product.id }}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-secondary/80"
+                  className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-secondary/70"
                 >
                   <img
                     src={getImg(product)}
                     alt={product.name}
-                    className="h-11 w-11 shrink-0 rounded-lg bg-secondary object-cover"
+                    className="h-12 w-12 shrink-0 rounded-lg bg-secondary object-cover"
                   />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-medium text-foreground">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{product.collection}</p>
+                    <p className="line-clamp-1 text-xs text-muted-foreground">{product.collection}</p>
                   </div>
-                  <span className="shrink-0 text-xs font-semibold text-primary">{formatINR(product.price)}</span>
+                  <span className="shrink-0 text-sm font-semibold text-primary">{formatINR(product.price)}</span>
                 </Link>
               ))}
 
@@ -177,6 +178,7 @@ function HeaderSearchBar({ isMobile = false }: { isMobile?: boolean }) {
               </button>
             </div>
           )}
+          </div>
         </div>
       )}
     </div>

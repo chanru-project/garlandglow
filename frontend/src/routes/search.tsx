@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ProductCard } from "@/components/site/ProductCard";
 import { getAllKnownProducts, type Product } from "@/data/products";
 import { fetchAllFlowers, searchProducts } from "@/lib/flower-api";
 import { ChevronDown, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>): { q?: string } => ({
@@ -34,16 +34,47 @@ function SearchPage() {
   const navigate = useNavigate();
 
   const [inputQuery, setInputQuery] = useState(search.q || "");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "garlands" | "flowers">("all");
   const [sort, setSort] = useState<"featured" | "priceLow" | "priceHigh" | "rating">("featured");
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setInputQuery(search.q || "");
   }, [search.q]);
+
+  useEffect(() => {
+    if (!inputQuery.trim()) {
+      setIsDropdownOpen(false);
+    }
+  }, [inputQuery]);
+
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      const target = e.target as Node;
+      if (searchAreaRef.current && !searchAreaRef.current.contains(target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,17 +107,23 @@ function SearchPage() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsDropdownOpen(false);
     void navigate({ to: "/search", search: { q: inputQuery.trim() } });
   };
 
   const handleTagClick = (tag: string) => {
     setInputQuery(tag);
+    setIsDropdownOpen(false);
     void navigate({ to: "/search", search: { q: tag } });
   };
 
+  const liveQuery = inputQuery.trim();
+  const currentQuery = (search.q || "").trim();
+  const isTypingLiveQuery = liveQuery.length > 0 && liveQuery !== currentQuery;
+
   const filteredProducts = useMemo(() => {
     let list = [...products];
-    const q = (search.q || inputQuery || "").trim();
+    const q = currentQuery;
 
     if (activeTab !== "all") {
       list = list.filter((p) => p.category === activeTab);
@@ -114,9 +151,14 @@ function SearchPage() {
     }
 
     return list;
-  }, [products, search.q, inputQuery, activeTab, sort]);
+  }, [products, currentQuery, activeTab, sort]);
 
-  const currentQuery = (search.q || "").trim();
+  const liveResults = useMemo(() => {
+    if (!liveQuery) return [];
+    return searchProducts(products, liveQuery).slice(0, 8);
+  }, [products, liveQuery]);
+
+  const getImg = (p: Product) => p.image || "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,35 +179,112 @@ function SearchPage() {
           </p>
 
           {/* Search Input Box */}
-          <form onSubmit={handleSearchSubmit} className="relative mx-auto mt-6 max-w-xl">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={inputQuery}
-              onChange={(e) => setInputQuery(e.target.value)}
-              placeholder="Search garlands, roses, jasmine, occasions..."
-              className="h-12 w-full rounded-full border border-border bg-card pl-11 pr-24 text-base shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
-            {inputQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setInputQuery("");
-                  void navigate({ to: "/search", search: { q: "" } });
+          <div ref={searchAreaRef} className="relative mx-auto mt-6 max-w-xl">
+            <form onSubmit={handleSearchSubmit} className="relative z-20">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={inputQuery}
+                onChange={(e) => {
+                  setInputQuery(e.target.value);
+                  setIsDropdownOpen(true);
                 }}
-                className="absolute right-20 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                aria-label="Clear search"
+                onFocus={() => {
+                  if (inputQuery.trim()) setIsDropdownOpen(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setIsDropdownOpen(false);
+                }}
+                placeholder="Search garlands, roses, jasmine, occasions..."
+                className="h-12 w-full rounded-full border border-border bg-card pl-11 pr-24 text-base shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20"
+              />
+              {inputQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInputQuery("");
+                    setIsDropdownOpen(false);
+                    void navigate({ to: "/search", search: { q: "" } });
+                  }}
+                  className="absolute right-20 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
-                <X className="h-4 w-4" />
+                Search
               </button>
+            </form>
+
+            {isDropdownOpen && liveQuery && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border/70 bg-white shadow-2xl ring-1 ring-black/5">
+                <div className="max-h-[350px] overflow-y-auto md:max-h-[450px]">
+                  {liveResults.length > 0 ? (
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                        Matching Products ({liveResults.length})
+                      </div>
+                      <div className="space-y-1">
+                        {liveResults.map((product) => (
+                          <Link
+                            key={product.id}
+                            to="/product/$id"
+                            params={{ id: product.id }}
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-secondary/70"
+                          >
+                            <img
+                              src={getImg(product)}
+                              alt={product.name}
+                              className="h-12 w-12 shrink-0 rounded-lg bg-secondary object-cover"
+                            />
+                            <div className="min-w-0 flex-1 text-left">
+                              <p className="line-clamp-1 text-sm font-medium text-foreground">{product.name}</p>
+                              <p className="line-clamp-1 text-xs text-muted-foreground">{product.category}</p>
+                            </div>
+                            <span className="shrink-0 text-sm font-semibold text-primary">₹{product.price}</span>
+                          </Link>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          void navigate({ to: "/search", search: { q: liveQuery } });
+                        }}
+                        className="mt-2 flex w-full items-center justify-between rounded-xl bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <span>View all {liveResults.length} results for &quot;{liveQuery}&quot;</span>
+                        <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-secondary text-muted-foreground">
+                        <Search className="h-6 w-6" />
+                      </div>
+                      <p className="mt-3 text-sm font-medium text-foreground">No products found for &quot;{liveQuery}&quot;</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          void navigate({ to: "/search", search: { q: liveQuery } });
+                        }}
+                        className="mt-2 text-xs font-semibold text-accent hover:underline"
+                      >
+                        Search all products
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Search
-            </button>
-          </form>
+          </div>
 
           {/* Popular Tag Chips */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs">
@@ -237,7 +356,7 @@ function SearchPage() {
           <div className="grid place-items-center rounded-2xl border border-dashed py-24 text-center text-sm text-destructive">
             {error}
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : isTypingLiveQuery ? null : filteredProducts.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-12 text-center">
             <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-secondary text-muted-foreground">
               <Search className="h-6 w-6" />
