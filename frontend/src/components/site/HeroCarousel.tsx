@@ -1,10 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
-  Pause,
-  Play,
-  Clock,
 } from "lucide-react";
 import banner1 from "@/assets/banner/bn1.jpeg";
 import banner2 from "@/assets/banner/bn2.jpeg";
@@ -17,23 +15,12 @@ import banner6 from "@/assets/banner/bn6.jpeg";
 interface BannerData {
   id: number;
   badge: string;
-  badgeIcon: "crown" | "heart" | "flower" | "party";
   title: string;
-  titleHighlight?: string;
   subtitle: string;
-  features: Array<{ text: string; icon: string }>;
   ctaText: string;
   ctaLink: string;
-  secondaryCtaText?: string;
-  secondaryCtaLink?: string;
   backgroundImage: string;
   tabLabel: string;
-  floatingBadge?: {
-    icon: string;
-    title: string;
-    subtitle: string;
-  };
-  accentColor: string; // for theme styling
 }
 
 const BANNERS: BannerData[] = [
@@ -41,168 +28,72 @@ const BANNERS: BannerData[] = [
   {
     id: 1,
     badge: "FRESHLY HANDCRAFTED DAILY · DUVIX EXCLUSIVE",
-    badgeIcon: "crown",
-    title: "FRESH FLOWERS &",
-    titleHighlight: "PREMIUM GARLANDS",
+    title: "FRESH FLOWERS & PREMIUM GARLANDS",
     subtitle: "Freshly handcrafted flowers and beautiful garlands from DUVIX.",
-    features: [
-      { text: "Freshly Handcrafted Daily", icon: "🌸" },
-      { text: "100% Farm-Fresh Blooms", icon: "🌿" },
-      { text: "Chilled Doorstep Delivery", icon: "🚚" },
-    ],
     ctaText: "SHOP NOW",
     ctaLink: "/garlands",
-    secondaryCtaText: "View Catalog",
-    secondaryCtaLink: "/collections",
     backgroundImage: banner1,
     tabLabel: "Fresh Garlands",
-    floatingBadge: {
-      icon: "⭐",
-      title: "4.9 Rating",
-      subtitle: "Trusted by 10,000+ Customers",
-    },
-    accentColor: "gold",
   },
   // Banner 2: ELEGANT WEDDING GARLANDS
   {
     id: 2,
     badge: "ROYAL BRIDAL VARMALA & WEDDING SETS",
-    badgeIcon: "heart",
-    title: "ELEGANT WEDDING",
-    titleHighlight: "GARLANDS",
+    title: "ELEGANT WEDDING GARLANDS",
     subtitle: "Handcrafted with fresh flowers for your special day.",
-    features: [
-      { text: "Royal Bridal Varmala", icon: "💍" },
-      { text: "Custom Attire Matching", icon: "🎨" },
-      { text: "Venue Direct Delivery", icon: "🏛️" },
-    ],
     ctaText: "EXPLORE WEDDING COLLECTION",
     ctaLink: "/collections/wedding",
-    secondaryCtaText: "Custom Order",
-    secondaryCtaLink: "/custom",
     backgroundImage: banner2,
     tabLabel: "Wedding Garlands",
-    floatingBadge: {
-      icon: "👑",
-      title: "Hand-Stitched Luxury",
-      subtitle: "Pure Rose & Jasmine Weave",
-    },
-    accentColor: "blush",
   },
-  // Banner 3: FLOWERS FOR EVERY MOMENT
+  // Banner 3: FLOWERS & DJ PROPERTIES
   {
     id: 3,
-    badge: "CELEBRATION BLOOMS & POOJA FLOWERS",
-    badgeIcon: "flower",
-    title: "FLOWERS FOR",
-    titleHighlight: "EVERY MOMENT",
-    subtitle: "Beautiful flowers for birthdays, engagements, housewarmings and celebrations.",
-    features: [
-      { text: "Daily Pooja & Ritual Flowers", icon: "🌺" },
-      { text: "Hand-Tied Bouquets", icon: "💐" },
-      { text: "Cold-Chain Chilled Storage", icon: "❄️" },
-    ],
-    ctaText: "SHOP FLOWERS",
-    ctaLink: "/flowers",
-    secondaryCtaText: "All Collections",
-    secondaryCtaLink: "/collections",
-    backgroundImage: banner4,
-    tabLabel: "Celebration Flowers",
-    floatingBadge: {
-      icon: "🌿",
-      title: "Morning Harvest",
-      subtitle: "Delivered Crisp & Fragrant",
-    },
-    accentColor: "emerald",
+    badge: "FLOWERS & DJ PROPERTIES",
+    title: "FLOWERS & DJ PROPERTIES",
+    subtitle: "Flowers for every moment, Beats for every celebration.",
+    ctaText: "EXPLORE DJ & SOUNDS",
+    ctaLink: "/collections/dj-sound-system",
+    backgroundImage: banner3,
+    tabLabel: "DJ & Sounds",
   },
-  // Banner 4: MAKE EVERY EVENT BEAUTIFUL
+  // Banner 4: CUSTOM GIFTS & BOUQUET
   {
     id: 4,
-    badge: "COMPLETE EVENT DECORATION & CELEBRATION SERVICES",
-    badgeIcon: "party",
-    title: "MAKE EVERY EVENT",
-    titleHighlight: "BEAUTIFUL",
-    subtitle: "Wedding decoration, stage decor, balloons, lighting, DJ & complete event services.",
-    features: [
-      { text: "Grand Stage & Mandap Decor", icon: "🎭" },
-      { text: "Ambient & Lighting FX", icon: "💡" },
-      { text: "Live DJ & Sound Systems", icon: "🎵" },
-    ],
-    ctaText: "PLAN YOUR EVENT",
-    ctaLink: "/custom",
-    secondaryCtaText: "Contact Planner",
-    secondaryCtaLink: "/contact",
-    backgroundImage: banner6,
-    tabLabel: "Events & Decor",
-    floatingBadge: {
-      icon: "✨",
-      title: "Full-Service Production",
-      subtitle: "Weddings, Receptions & Galas",
-    },
-    accentColor: "amber",
+    badge: "CUSTOM GIFTS & BEAUTIFUL BOUQUETS",
+    title: "CUSTOM GIFTS & BOUQUETS",
+    subtitle: "Thoughtful Gifts. Beautiful Bouquets. Made for Every Occasion.",
+    ctaText: "SHOP FLOWERS",
+    ctaLink: "/flowers",
+    backgroundImage: banner4,
+    tabLabel: "Gifts & Bouquets",
   },
+  // Banner 5: CATERING
   {
     id: 5,
-    badge: "CUSTOM GIFTS & BEAUTIFUL BOUQUETS",
-    badgeIcon: "heart",
-    title: "THOUGHTFUL GIFTS",
-    titleHighlight: "FOR EVERY OCCASION",
-    subtitle: "Beautiful bouquets and personalized gifts made with care.",
-    features: [
-      { text: "Fresh Flower Bouquets", icon: "💐" },
-      { text: "Personalized Hampers", icon: "🎁" },
-      { text: "On-Time Delivery", icon: "🚚" },
-    ],
-    ctaText: "SHOP GIFTS",
-    ctaLink: "/collections",
-    secondaryCtaText: "Contact Us",
-    secondaryCtaLink: "/contact",
-    backgroundImage: banner3,
-    tabLabel: "Gifts & Bouquets",
-    floatingBadge: {
-      icon: "🎁",
-      title: "Made With Love",
-      subtitle: "Thoughtful Gifts, Beautiful Moments",
-    },
-    accentColor: "blush",
-  },
-  {
-    id: 6,
     badge: "FRESH INGREDIENTS & PROFESSIONAL SERVICE",
-    badgeIcon: "flower",
-    title: "DELICIOUS MOMENTS",
-    titleHighlight: "MADE FOR EVERY OCCASION",
-    subtitle: "Authentic cuisines, custom menus, and service made with care.",
-    features: [
-      { text: "Wide Variety of Cuisines", icon: "🍽️" },
-      { text: "Hygienic & Fresh", icon: "🌿" },
-      { text: "Custom Menu Options", icon: "✨" },
-    ],
+    title: "DUVIX CATERING",
+    subtitle: "Delicious Moments, Made for Every Occasion. Veg & Non-Veg Available.",
     ctaText: "EXPLORE CATERING",
-    ctaLink: "/collections",
-    secondaryCtaText: "Contact Planner",
-    secondaryCtaLink: "/contact",
+    ctaLink: "/collections/wedding",
     backgroundImage: banner5,
     tabLabel: "Catering",
-    floatingBadge: {
-      icon: "🍽️",
-      title: "Served With Love",
-      subtitle: "Fresh Ingredients, Memorable Events",
-    },
-    accentColor: "amber",
+  },
+  // Banner 6: EVENTS DECORATION & MORE
+  {
+    id: 6,
+    badge: "COMPLETE EVENT DECORATION & CELEBRATION SERVICES",
+    title: "EVENTS DECORATION & MORE",
+    subtitle: "Decor for every celebration, Memories for a lifetime.",
+    ctaText: "PLAN YOUR EVENT",
+    ctaLink: "/custom",
+    backgroundImage: banner6,
+    tabLabel: "Events & Decor",
   },
 ];
 
-// const AUTOPLAY_INTERVAL = 5000; // Exactly 20 seconds
-// const TICK_INTERVAL = 40; // smooth 40ms tick for progress bar
-const MIN_AUTOPLAY_INTERVAL = 1000;  // 9 seconds
-const MAX_AUTOPLAY_INTERVAL = 2000; // 11 seconds
-const TICK_INTERVAL = 40;
-
-const getNextAutoplayInterval = () =>
-  Math.floor(
-    Math.random() * (MAX_AUTOPLAY_INTERVAL - MIN_AUTOPLAY_INTERVAL + 1)
-  ) + MIN_AUTOPLAY_INTERVAL;
+const AUTOPLAY_INTERVAL = 5000; // 5 seconds per slide
+const TICK_INTERVAL = 50;
 
 export function HeroCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -231,7 +122,7 @@ export function HeroCarousel() {
     goToSlide(currentIndex - 1);
   }, [currentIndex, goToSlide]);
 
-  // Autoplay 20-Second loop & progress tracking
+  // Autoplay loop
   useEffect(() => {
     if (progressTimerRef.current) {
       clearInterval(progressTimerRef.current);
@@ -251,7 +142,7 @@ export function HeroCarousel() {
       lastTickTimeRef.current = now;
 
       setProgress((prev) => {
-        const nextVal = prev + (delta / getNextAutoplayInterval()) * 100;
+        const nextVal = prev + (delta / AUTOPLAY_INTERVAL) * 100;
         if (nextVal >= 100) {
           nextSlide();
           return 0;
@@ -294,7 +185,7 @@ export function HeroCarousel() {
   const handleTouchEnd = () => {
     if (touchStartX.current === null || touchEndX.current === null) return;
     const diffX = touchStartX.current - touchEndX.current;
-    const minSwipeDistance = 45; // pixels
+    const minSwipeDistance = 40; // pixels
     if (diffX > minSwipeDistance) {
       nextSlide();
     } else if (diffX < -minSwipeDistance) {
@@ -325,55 +216,83 @@ export function HeroCarousel() {
         Slide {currentIndex + 1} of {BANNERS.length}: {currentBanner.title} {currentBanner.subtitle}
       </div>
 
-      {/* Main Slides Container with Fixed Responsive Height */}
-      <div className="relative h-[560px] sm:h-[600px] md:h-[640px] lg:h-[680px] w-full overflow-hidden">
+      {/* Main Slides Container with 16:9 Aspect Ratio for perfect display on Mobile & Desktop */}
+      <div className="relative w-full aspect-[16/9] max-h-[640px] overflow-hidden bg-black">
         {BANNERS.map((banner, index) => {
           const isActive = index === currentIndex;
           return (
             <div
               key={banner.id}
               aria-hidden={!isActive}
-              className={`absolute inset-0 h-full w-full transition-all duration-1000 ease-in-out ${
+              className={`absolute inset-0 h-full w-full transition-opacity duration-700 ease-in-out ${
                 isActive
-                  ? "opacity-100 z-10 pointer-events-auto scale-100"
-                  : "opacity-0 z-0 pointer-events-none scale-105"
+                  ? "opacity-100 z-10 pointer-events-auto"
+                  : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Full-bleed Background Image */}
-              <img
-                src={banner.backgroundImage}
-                alt={banner.title}
-                className="absolute inset-0 h-full w-full object-cover object-center transform transition-transform duration-10000 ease-out scale-100 group-hover:scale-105"
-                loading={index === 0 ? "eager" : "lazy"}
-              />
-
-
+              <Link
+                to={banner.ctaLink}
+                className="block h-full w-full relative cursor-pointer"
+              >
+                {/* 16:9 Graphic Banner */}
+                <img
+                  src={banner.backgroundImage}
+                  alt={banner.title}
+                  className="h-full w-full object-contain sm:object-cover object-center"
+                  loading={index === 0 ? "eager" : "lazy"}
+                />
+              </Link>
             </div>
           );
         })}
       </div>
 
       {/* Navigation Arrow Controls */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-20 flex items-center justify-between px-2 sm:px-4 md:px-6">
+      <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-20 flex items-center justify-between px-1.5 sm:px-3 md:px-5">
         <button
           type="button"
-          onClick={prevSlide}
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
           aria-label="Previous Slide"
-          className="pointer-events-auto flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/25 bg-black/40 text-white shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-black/70 hover:border-[#d4af37] focus-visible:ring-2 focus-visible:ring-[#d4af37]"
+          className="pointer-events-auto flex h-7 w-7 sm:h-9 sm:w-9 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-black/80 hover:border-[#d4af37] active:scale-95"
         >
-          <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
         </button>
 
         <button
           type="button"
-          onClick={nextSlide}
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
           aria-label="Next Slide"
-          className="pointer-events-auto flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/25 bg-black/40 text-white shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-black/70 hover:border-[#d4af37] focus-visible:ring-2 focus-visible:ring-[#d4af37]"
+          className="pointer-events-auto flex h-7 w-7 sm:h-9 sm:w-9 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-black/80 hover:border-[#d4af37] active:scale-95"
         >
-          <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
         </button>
       </div>
 
+      {/* Pagination Dots */}
+      <div className="absolute bottom-2 sm:bottom-3 md:bottom-4 inset-x-0 z-20 flex items-center justify-center gap-1.5 sm:gap-2">
+        {BANNERS.map((banner, index) => (
+          <button
+            key={banner.id}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToSlide(index);
+            }}
+            aria-label={`Go to slide ${index + 1}`}
+            className={`transition-all duration-300 rounded-full ${
+              index === currentIndex
+                ? "w-4 sm:w-6 h-1 sm:h-1.5 bg-[#d4af37] shadow-sm"
+                : "w-1 sm:w-1.5 h-1 sm:h-1.5 bg-white/50 hover:bg-white/80"
+            }`}
+          />
+        ))}
+      </div>
     </section>
   );
 }
