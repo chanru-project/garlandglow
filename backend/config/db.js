@@ -12,7 +12,10 @@ export async function connectDB() {
   const dbName = process.env.MONGODB_DB_NAME || "duvix";
   const connectionOptions = {
     dbName,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 15000,
+    connectTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+    maxPoolSize: 15,
     retryWrites: true,
     retryReads: true,
   };

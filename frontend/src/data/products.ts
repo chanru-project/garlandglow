@@ -39,6 +39,7 @@ export const IMAGES = {
 
 // Mapping of collection display names to representative images used across the UI.
 export const COLLECTION_IMAGES: Record<string, string> = {
+  "Rose": roseImg,
   "Rose Model": r8Img,
   "Rose Petal": r14Img,
   "Nandhiyavattai": r9Img,
@@ -56,6 +57,7 @@ export const COLLECTION_IMAGES: Record<string, string> = {
 };
 
 const COLLECTION_DEFAULT_IMAGE: Record<string, string> = {
+  "Rose": roseImg,
   "Rose Model": r8Img,
   "Rose Petal": r14Img,
   "Nandhiyavattai": r9Img,
@@ -128,30 +130,30 @@ export const GARLAND_COLLECTIONS = [
 ];
 
 export const FLOWER_COLLECTIONS = [
+  "Rose",
   "Jasmine",
+  "Flower String",
+  "Flower",
   "Lily",
   "Orchid",
   "Marigold",
   "Bouquets",
   "Flower Baskets",
   "Flower Boxes",
-  "Loose Flowers",
+  "Loose Flower",
 ];
 
 export const OCCASIONS = [
-  "Wedding",
-  "Reception",
-  "Engagement",
-  "Birthday",
-  "Anniversary",
-  "Baby Shower",
-  "Housewarming",
-  "Temple Festivals",
-  "Corporate",
-  "Valentine's Day",
-  "Diwali",
-  "Pongal",
-  "Christmas",
+  "flowers string",
+  "Loose flowers",
+  "Rose",
+  "Flower Boxes",
+  "Garlands",
+  "Dj and Sounds",
+  "Catering",
+  "Gifts Collection",
+  "Event Stage Decoration",
+  "Customized Order",
 ];
 
 const IMG_POOL = ROSEMODEL_IMAGES;
@@ -234,6 +236,10 @@ function buildAll(): Product[] {
   });
 
   FLOWER_COLLECTIONS.forEach((c, ci) => {
+    if (c === "Rose") {
+      // Do not hardcode product data in frontend for Rose; fetched dynamically from MongoDB
+      return;
+    }
     for (let i = 0; i < 6; i++) {
       list.push(makeProduct(1000 + ci * 11 + i, "flowers", c));
     }
@@ -269,3 +275,82 @@ export function getAllKnownProducts() {
 export function formatINR(n: number) {
   return "₹" + n.toLocaleString("en-IN");
 }
+
+export function isLooseFlower(
+  product?: {
+    category?: string;
+    collection?: string;
+    sourceCategory?: string;
+    name?: string;
+  } | null,
+): boolean {
+  if (!product) return false;
+  const normalize = (s?: string) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+
+  const coll = normalize(product.collection);
+  const src = normalize(product.sourceCategory);
+  const cat = normalize(product.category);
+
+  return (
+    coll === "looseflower" ||
+    coll === "looseflowers" ||
+    src === "looseflower" ||
+    src === "looseflowers" ||
+    cat === "looseflower" ||
+    cat === "looseflowers" ||
+    String(product.name || "").toLowerCase().includes("loose flower")
+  );
+}
+
+export function isFlowerString(
+  product?: {
+    category?: string;
+    collection?: string;
+    sourceCategory?: string;
+    name?: string;
+  } | null,
+): boolean {
+  if (!product) return false;
+  const normalize = (s?: string) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+
+  const coll = normalize(product.collection);
+  const src = normalize(product.sourceCategory);
+  const cat = normalize(product.category);
+
+  return (
+    coll === "flowerstring" ||
+    coll === "flowerstrings" ||
+    coll === "flowersstring" ||
+    coll === "flowersstrings" ||
+    src === "flowerstring" ||
+    src === "flowerstrings" ||
+    src === "flowersstring" ||
+    src === "flowersstrings" ||
+    cat === "flowerstring" ||
+    cat === "flowerstrings" ||
+    cat === "flowersstring" ||
+    cat === "flowersstrings" ||
+    String(product.name || "").toLowerCase().includes("flower string") ||
+    String(product.name || "").toLowerCase().includes("flowers string")
+  );
+}
+
+export function getProductPriceSuffix(
+  product?: {
+    category?: string;
+    collection?: string;
+    sourceCategory?: string;
+    name?: string;
+  } | null,
+): string {
+  if (isLooseFlower(product)) return " / 1 kg";
+  if (isFlowerString(product)) return " / 1 feet";
+  return "";
+}
+

@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { formatINR, type Product } from "@/data/products";
+import { formatINR, getProductPriceSuffix, isFlowerString, isLooseFlower, type Product } from "@/data/products";
 import { useShop } from "@/store/shop";
 import { Heart, ShoppingBag, Star, Truck, Shield, Award, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -48,7 +48,18 @@ export const Route = createFileRoute("/product/$id")({
 function ProductPage() {
   const { product } = Route.useLoaderData();
   const { addToCart, toggleWishlist, inWishlist } = useShop();
-  const [size, setSize] = useState(product.size ?? "Medium");
+  const isLoose = isLooseFlower(product);
+  const isString = isFlowerString(product);
+  const unitSuffix = getProductPriceSuffix(product);
+
+  const sizeOptions = isLoose
+    ? ["1 kg", "2 kg", "3 kg", "5 kg", "10 kg"]
+    : isString
+    ? ["1 feet", "2 feet", "3 feet", "4 feet", "5 feet", "6 feet", "8 feet", "10 feet"]
+    : ["Small", "Medium", "Large", "XL"];
+
+  const defaultSize = product.size ?? (isLoose ? "1 kg" : isString ? "1 feet" : "Medium");
+  const [size, setSize] = useState(defaultSize);
   const [color, setColor] = useState(product.colors?.[0] ?? "Red");
   const [qty, setQty] = useState(1);
   const [orderOpen, setOrderOpen] = useState(false);
@@ -142,10 +153,14 @@ function ProductPage() {
           </div>
 
           <div className="mt-6 flex items-baseline gap-3">
-            <span className="text-4xl font-semibold text-primary">{formatINR(product.price)}</span>
+            <span className="text-4xl font-semibold text-primary">
+              {formatINR(product.price)}{unitSuffix}
+            </span>
             {product.mrp > product.price && (
               <>
-                <span className="text-lg text-muted-foreground line-through">{formatINR(product.mrp)}</span>
+                <span className="text-lg text-muted-foreground line-through">
+                  {formatINR(product.mrp)}{unitSuffix}
+                </span>
               </>
             )}
           </div>
@@ -169,10 +184,12 @@ function ProductPage() {
           )}
 
           <div className="mt-5">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider">Size</div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wider">
+              {isLoose ? "Weight" : isString ? "Length" : "Size"}
+            </div>
             {/* Desktop/tablet size selector */}
             <div className="hidden sm:flex flex-wrap gap-2">
-              {["Small", "Medium", "Large", "XL"].map((s) => (
+              {sizeOptions.map((s) => (
                 <button
                   key={s}
                   onClick={() => setSize(s)}
@@ -189,20 +206,24 @@ function ProductPage() {
                     <div className="flex-1">
                       <div className="text-xs text-muted-foreground">{product.collection}</div>
                       <div className="font-medium">{product.name}</div>
-                      <div className="text-sm text-muted-foreground">{formatINR(product.price)}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatINR(product.price)}{unitSuffix}
+                      </div>
                     </div>
                     <SheetTrigger asChild>
-                      <button className="rounded-full bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground">Choose size</button>
+                      <button className="rounded-full bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground">
+                        {isLoose ? "Choose weight" : isString ? "Choose length" : "Choose size"}
+                      </button>
                     </SheetTrigger>
                   </div>
 
                   <SheetContent side="bottom">
                     <SheetHeader>
-                      <SheetTitle>Select size</SheetTitle>
+                      <SheetTitle>{isLoose ? "Select weight" : isString ? "Select length" : "Select size"}</SheetTitle>
                     </SheetHeader>
                     <div className="grid gap-3">
                       <div className="flex flex-wrap gap-2">
-                        {["Small", "Medium", "Large", "XL"].map((s) => (
+                        {sizeOptions.map((s) => (
                           <button
                             key={s}
                             onClick={() => setSize(s)}

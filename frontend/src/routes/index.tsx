@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkles, Truck, Shield, Flower2, Star } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { IMAGES, PRODUCTS, GARLAND_COLLECTIONS, OCCASIONS, COLLECTION_IMAGES, type Product } from "@/data/products";
 import { ProductCard } from "@/components/site/ProductCard";
+import { HeroCarousel } from "@/components/site/HeroCarousel";
 import { fetchAllFlowers, fetchFlowersByCategory, resolveApiUrl } from "@/lib/flower-api";
 
 export const Route = createFileRoute("/")({
@@ -105,72 +106,8 @@ function Home() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10" style={{ background: "var(--gradient-hero)" }} />
-        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-10 sm:px-6 sm:py-16 md:grid-cols-2 md:gap-10 md:py-24 lg:py-28">
-          <div className="animate-fade-up">
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-primary">
-              <Sparkles className="h-3.5 w-3.5 text-gold" /> Freshly hand-crafted, daily
-            </span>
-            <h1 className="mt-5 font-display text-4xl leading-[1.05] sm:text-5xl md:text-6xl lg:text-7xl">
-              Fresh Flowers & <br />
-              <span className="text-gradient-gold">Premium Garlands</span>
-              <br />form DUVIX SHOP
-            </h1>
-            <p className="mt-5 max-w-lg text-base text-muted-foreground sm:text-lg">
-              Wedding garlands, temple garland, roses and jasmine — assembled by master florists
-              and delivered chilled to your doorstep.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link
-                to="/garlands"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-elegant transition-transform hover:scale-[1.03]"
-              >
-                Shop Now <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                to="/collections"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-primary/30 bg-background/80 px-6 py-3.5 text-sm font-semibold text-primary hover:border-accent hover:text-accent"
-              >
-                Explore Collections
-              </Link>
-            </div>
-            <div className="mt-10 flex flex-wrap gap-6 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2"><Truck className="h-4 w-4 text-accent" /> Same-day delivery</span>
-              <span className="flex items-center gap-2"><Shield className="h-4 w-4 text-accent" /> Freshness guarantee</span>
-              <span className="flex items-center gap-2"><Flower2 className="h-4 w-4 text-accent" /> Custom orders</span>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-accent/20 via-gold/10 to-transparent blur-2xl" />
-            <div className="overflow-hidden rounded-[2rem] border border-gold/30 shadow-elegant">
-              <img
-                src={IMAGES.heroImg}
-                alt="Traditional Indian wedding garlands with red roses, jasmine and marigolds"
-                width={1920}
-                height={1200}
-                loading="lazy"
-                className="h-[260px] w-full object-cover sm:h-[360px] md:h-[560px]"
-              />
-            </div>
-            <div className="absolute -bottom-6 -left-6 hidden rounded-2xl border border-border bg-background/95 p-4 shadow-elegant backdrop-blur md:block">
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {[1,2,3].map(i => <div key={i} className="h-8 w-8 rounded-full border-2 border-background bg-gradient-to-br from-accent to-rose" />)}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 text-xs font-semibold">
-                    <Star className="h-3.5 w-3.5 fill-gold text-gold" /> 4.9 · 10 reviews
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">Trusted by customers across Dindigul and Madurai</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 4-Slide Automatic Hero Carousel */}
+      <HeroCarousel />
 
       {/* Categories */}
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
@@ -221,26 +158,110 @@ function Home() {
 
       {/* Offer banner */}
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-        <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground shadow-elegant sm:p-10 md:p-16">
-          <div className="absolute right-0 top-0 h-full w-1/2 opacity-30" style={{ background: "radial-gradient(circle at 70% 30%, var(--gold), transparent 60%)" }} />
-          <div className="relative max-w-xl">
-            <div className="text-xs uppercase tracking-[0.3em] text-gold">Festive Offer</div>
-            <h3 className="mt-3 font-display text-3xl sm:text-4xl md:text-5xl">Flat 20% off on <span className="text-gradient-gold">Wedding Collections</span></h3>
-            <p className="mt-3 opacity-85">Book your special day's varmalas, mandap decor and reception garlands with us.</p>
-            <Link
-              to="/collections/$slug"
-              params={{ slug: "wedding" }}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground hover:brightness-110"
-            >
-              Shop Wedding Collection <ArrowRight className="h-4 w-4" />
-            </Link>
+        <div className="relative overflow-hidden rounded-[2rem] border border-[#cda54d]/30 bg-[#032814] p-6 text-[#f8f0da] shadow-[0_24px_60px_rgba(4,22,11,0.35)] sm:p-8 md:p-10 lg:p-12">
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 18% 20%, rgba(217, 171, 63, 0.16), transparent 28%), radial-gradient(circle at 80% 16%, rgba(166, 194, 72, 0.18), transparent 24%), radial-gradient(circle at 78% 78%, rgba(217, 171, 63, 0.12), transparent 30%), linear-gradient(135deg, #022312 0%, #06331b 48%, #041d0f 100%)",
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(241, 213, 138, 0.55) 1px, transparent 0)",
+              backgroundSize: "20px 20px",
+            }}
+          />
+
+          <div className="pointer-events-none absolute left-3 top-2 hidden h-24 w-10 rounded-b-full border-l border-[#dfbe6e]/45 md:block" />
+          <div className="pointer-events-none absolute left-8 top-3 hidden h-20 w-8 rounded-b-full border-l border-[#dfbe6e]/35 md:block" />
+          <div className="pointer-events-none absolute right-0 top-0 hidden h-28 w-40 rounded-bl-[100%] bg-[linear-gradient(140deg,rgba(132,176,60,0.95),rgba(59,109,42,0.75),transparent_75%)] md:block" />
+          <div className="pointer-events-none absolute bottom-6 left-6 h-28 w-28 rounded-full border border-[#cfa750]/15" />
+          <div className="pointer-events-none absolute right-10 top-10 h-36 w-36 rounded-full border border-[#cfa750]/20" />
+          <div className="pointer-events-none absolute left-1/2 top-10 hidden h-[calc(100%-5rem)] w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-[#d9b15a] to-transparent md:block" />
+
+          <div className="relative grid gap-8 md:grid-cols-[1fr_auto_0.92fr] md:gap-10">
+            <div className="flex flex-col justify-between">
+              <div>
+                <div className="inline-flex items-center gap-3">
+                  <span className="h-px w-8 bg-[#d9b15a]" />
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[#f0cb72] sm:text-xs">
+                    ONAM FESTIVAL OFFER
+                  </p>
+                  <span className="h-px w-8 bg-[#d9b15a]" />
+                </div>
+
+                <div className="mt-5">
+                  <p className="text-3xl leading-none text-[#f7efde] sm:text-4xl">Celebrate</p>
+                  <h3 className="mt-1 font-display text-6xl leading-[0.9] text-[#e3b549] drop-shadow-[0_2px_10px_rgba(227,181,73,0.2)] sm:text-7xl lg:text-8xl">
+                    Onam
+                  </h3>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <p className="text-base font-semibold uppercase tracking-[0.35em] text-[#f9f0dd] sm:text-lg">
+                    with DUVIX
+                  </p>
+                  <p className="text-sm uppercase tracking-[0.4em] text-[#d6bb7a] sm:text-base">
+                    FLOWERS & EVENTS
+                  </p>
+                </div>
+
+                <p className="mt-6 max-w-md text-sm leading-relaxed text-[#f7ecd6]/85 sm:text-base">
+                  Make your celebrations beautiful
+                </p>
+                <p className="mt-1 font-display text-2xl italic text-[#e0b24d] sm:text-3xl">
+                  The Onam Way!
+                </p>
+              </div>
+
+              <div className="mt-8">
+                <Link
+                  to="/garlands"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#d6ad58] bg-[#0a2818]/70 px-5 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f1d180] shadow-[0_10px_24px_rgba(0,0,0,0.18)] transition-colors hover:bg-[#123520] hover:text-[#ffe6a8] sm:w-auto sm:px-7"
+                >
+                  BOOK YOUR CELEBRATION TODAY
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="hidden w-px bg-gradient-to-b from-transparent via-[#d9b15a]/90 to-transparent md:block" />
+
+            <div className="relative flex flex-col justify-center overflow-hidden rounded-[1.5rem] border border-[#cda54d]/25 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.06),transparent_30%),rgba(5,32,18,0.55)] px-5 py-6 sm:px-7 md:px-8">
+              <div className="mx-auto w-fit rounded-full border border-[#d2ab56]/40 px-4 py-2 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#f4d48e] sm:text-xs">
+                  SPECIAL FESTIVE OFFER
+                </p>
+              </div>
+
+              <div className="mt-5 text-center leading-none">
+                <p className="font-display text-7xl text-[#e3b549] drop-shadow-[0_4px_14px_rgba(227,181,73,0.24)] sm:text-8xl lg:text-[7rem]">
+                  20%
+                </p>
+                <p className="mt-2 text-3xl font-medium uppercase tracking-[0.08em] text-[#f7efdd] sm:text-4xl">
+                  OFF
+                </p>
+              </div>
+
+              <div className="mt-5 text-center">
+                <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#f2cf84] sm:text-base">
+                  FLAT
+                </p>
+                <p className="mt-3 inline-block bg-gradient-to-r from-[#8f6517] via-[#d0a144] to-[#8f6517] px-4 py-2 text-lg font-semibold uppercase tracking-[0.18em] text-[#fff5dd] shadow-[0_12px_24px_rgba(123,87,15,0.28)] sm:text-xl">
+                  ON ALL Flowers COLLECTIONS
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Occasions */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16">
-        <SectionTitle eyebrow="Curated for every moment" title="Shop by occasion" />
+        <SectionTitle eyebrow="Curated for every moment" title="Celebrate Every Moment in DUVIX flowers & events" />
         <div className="mt-8 flex flex-wrap gap-3">
           {OCCASIONS.map((o) => (
             <Link

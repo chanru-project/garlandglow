@@ -84,7 +84,20 @@ function mapFlowerToProduct(item: FlowerApiItem): Product {
     rating: 4.8,
     reviews: 10,
     colors: ["Red", "White", "Pink"],
-    size: "Medium",
+    size:
+      normalizeCategoryKey(rawCategory) === "looseflower" ||
+      normalizeCategoryKey(rawCategory) === "looseflowers" ||
+      normalizeCategoryKey(collection) === "looseflower" ||
+      normalizeCategoryKey(collection) === "looseflowers"
+        ? "1 kg"
+        : normalizeCategoryKey(rawCategory) === "flowerstring" ||
+          normalizeCategoryKey(rawCategory) === "flowerstrings" ||
+          normalizeCategoryKey(rawCategory) === "flowersstring" ||
+          normalizeCategoryKey(collection) === "flowerstring" ||
+          normalizeCategoryKey(collection) === "flowerstrings" ||
+          normalizeCategoryKey(collection) === "flowersstring"
+        ? "1 feet"
+        : "Medium",
     description: String(safeItem.description ?? ""),
     inStock: true,
     newArrival: collection === "Lotus",

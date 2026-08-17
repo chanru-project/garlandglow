@@ -5,15 +5,11 @@ import { fetchAllFlowers, fetchFlowersByCategory } from "@/lib/flower-api";
 import { useCallback, useEffect, useState } from "react";
 
 const FLOWER_PAGE_COLLECTIONS = [
-  "Rose",
-  "Jasmine",
-  "Lily",
-  "Orchid",
-  "Marigold",
-  "Bouquets",
-  "Flower Baskets",
-  "Flower Boxes",
+  "Flower String",
   "Loose Flowers",
+  "Rose",
+  "Bouquets",
+  "Flower Boxes",
 ];
 
 export const Route = createFileRoute("/flowers")({
@@ -21,6 +17,28 @@ export const Route = createFileRoute("/flowers")({
     collection: typeof search.collection === "string" ? search.collection : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
   }),
+  loaderDeps: ({ search: { collection } }) => ({ collection }),
+  loader: async ({ deps: { collection } }) => {
+    try {
+      if (collection) {
+        const categorySlug = toCategoryParam(collection);
+        const fetched = await fetchFlowersByCategory(categorySlug);
+        const flowerResults = fetched.filter(
+          (item) => item.category === "flowers" || toCategoryParam(item.collection) === categorySlug,
+        );
+        return { initialProducts: flowerResults };
+      }
+      const allProducts = await fetchAllFlowers();
+      const flowerItems = allProducts.filter(
+        (item) =>
+          item.category === "flowers" ||
+          FLOWER_PAGE_COLLECTIONS.map(toCategoryParam).includes(toCategoryParam(item.collection)),
+      );
+      return { initialProducts: flowerItems };
+    } catch {
+      return { initialProducts: [] };
+    }
+  },
   head: () => ({
     meta: [
       { title: "Fresh Flowers — Roses, Jasmines, Lilies, Orchids & Bouquets | Malligai" },
@@ -35,10 +53,11 @@ function toCategoryParam(value?: string) {
 }
 
 function FlowersPage() {
+  const loaderData = Route.useLoaderData();
   const search = Route.useSearch();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(loaderData?.initialProducts || []);
   const [allFlowerProducts, setAllFlowerProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!loaderData?.initialProducts?.length);
   const [error, setError] = useState<string | null>(null);
 
   const getFallbackFlowers = useCallback(() => {
@@ -66,13 +85,19 @@ function FlowersPage() {
   }, [getFallbackFlowers]);
 
   useEffect(() => {
+    if (loaderData?.initialProducts && loaderData.initialProducts.length > 0) {
+      setProducts(loaderData.initialProducts);
+      setLoading(false);
+      return;
+    }
+
     if (search.collection) {
       void handleCollectionChange(search.collection);
       return;
     }
 
     void loadAllProducts();
-  }, [loadAllProducts, search.collection]);
+  }, [loaderData, loadAllProducts, search.collection]);
 
   const handleCollectionChange = async (collection: string | null) => {
     if (!collection) {

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useRouter } from "@tanstack/react-router";
 import { Heart, ShoppingBag, Star } from "lucide-react";
-import { COLLECTION_IMAGES, formatINR, type Product, IMAGES } from "@/data/products";
+import { COLLECTION_IMAGES, formatINR, getProductPriceSuffix, type Product, IMAGES } from "@/data/products";
 import { useShop } from "@/store/shop";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
   const { addToCart, toggleWishlist, inWishlist, isAuthenticated } = useShop();
   const router = useRouter();
   const wished = inWishlist(product.id);
+  const unitSuffix = getProductPriceSuffix(product);
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-all duration-200 md:rounded-2xl md:shadow-soft md:hover:-translate-y-1 md:hover:shadow-lg">
@@ -62,9 +63,13 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="text-muted-foreground">({product.reviews})</span>
         </div>
         <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-primary md:text-lg">{formatINR(product.price)}</span>
+          <span className="text-sm font-semibold text-primary md:text-lg">
+            {formatINR(product.price)}{unitSuffix}
+          </span>
           {product.mrp > product.price && (
-            <span className="text-[10px] text-muted-foreground line-through md:text-xs">{formatINR(product.mrp)}</span>
+            <span className="text-[10px] text-muted-foreground line-through md:text-xs">
+              {formatINR(product.mrp)}{unitSuffix}
+            </span>
           )}
         </div>
 

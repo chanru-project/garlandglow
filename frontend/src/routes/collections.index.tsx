@@ -118,6 +118,7 @@ const GARLAND_CATEGORIES: CategoryItem[] = [
 const FLOWER_CATEGORIES: CategoryItem[] = [
   { name: "Rose", to: "/flowers", slug: "rose" },
   { name: "Jasmine", to: "/flowers", slug: "jasmine" },
+  { name: "Flower String", to: "/flowers", slug: "flower-string" },
   { name: "Lily", to: "/flowers", slug: "lily" },
   { name: "Orchid", to: "/flowers", slug: "orchid" },
   { name: "Marigold", to: "/flowers", slug: "marigold" },

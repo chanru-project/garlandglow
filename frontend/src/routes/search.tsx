@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ProductCard } from "@/components/site/ProductCard";
-import { getAllKnownProducts, type Product } from "@/data/products";
+import { formatINR, getAllKnownProducts, getProductPriceSuffix, type Product } from "@/data/products";
 import { fetchAllFlowers, searchProducts } from "@/lib/flower-api";
 import { ChevronDown, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -246,7 +246,9 @@ function SearchPage() {
                               <p className="line-clamp-1 text-sm font-medium text-foreground">{product.name}</p>
                               <p className="line-clamp-1 text-xs text-muted-foreground">{product.category}</p>
                             </div>
-                            <span className="shrink-0 text-sm font-semibold text-primary">₹{product.price}</span>
+                            <span className="shrink-0 text-sm font-semibold text-primary">
+                              {formatINR(product.price)}{getProductPriceSuffix(product)}
+                            </span>
                           </Link>
                         ))}
                       </div>

@@ -67,6 +67,10 @@ export const JasmineFlower =
   mongoose.models.JasmineFlower || mongoose.model("JasmineFlower", flowerSchema, "Jasmine");
 export const JasmineLowerFlower =
   mongoose.models.JasmineLowerFlower || mongoose.model("JasmineLowerFlower", flowerSchema, "jasmine");
+export const FlowerGarlandsFlower =
+  mongoose.models.FlowerGarlandsFlower || mongoose.model("FlowerGarlandsFlower", flowerSchema, "Flower String");
+export const FlowerCategory =
+  mongoose.models.FlowerCategory || mongoose.model("FlowerCategory", flowerSchema, "Flower");
 export const LilyFlower =
   mongoose.models.LilyFlower || mongoose.model("LilyFlower", flowerSchema, "lilly");
 export const LilyLowerFlower =
@@ -93,3 +97,5 @@ export const LooseFlowersFlower =
   mongoose.models.LooseFlowersFlower || mongoose.model("LooseFlowersFlower", flowerSchema, "losseflower");
 export const LooseFlowersPluralFlower =
   mongoose.models.LooseFlowersPluralFlower || mongoose.model("LooseFlowersPluralFlower", flowerSchema, "looseflowers");
+export const LooseFlowerCategory =
+  mongoose.models.LooseFlowerCategory || mongoose.model("LooseFlowerCategory", flowerSchema, "Loose Flowers");

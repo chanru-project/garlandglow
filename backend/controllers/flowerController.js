@@ -12,6 +12,8 @@ import {
   RoseFlower,
   JasmineFlower,
   JasmineLowerFlower,
+  FlowerGarlandsFlower,
+  FlowerCategory,
   LilyFlower,
   LilyLowerFlower,
   OrchidFlower,
@@ -25,6 +27,7 @@ import {
   FlowerBoxesFlower,
   LooseFlowersFlower,
   LooseFlowersPluralFlower,
+  LooseFlowerCategory,
 } from "../models/Flower.js";
 
 function escapeRegex(value) {
@@ -39,7 +42,7 @@ function normalizeCategory(value) {
 
 async function safeFind(model, filter = {}) {
   try {
-    return await model.find(filter).lean();
+    return await model.find(filter).maxTimeMS(10000).lean();
   } catch (error) {
     console.warn(`[mongo] ${model.modelName || "unknown-model"} lookup failed:`, error?.message || error);
     return [];
@@ -82,12 +85,15 @@ const categoryModelMap = {
   flowerboxes: [FlowerBoxesFlower],
   flowerbaskets: [FlowerBasketsFlower, FlowerBasketsPluralFlower],
   bouquets: [BouquetsFlower, BouquetsLowerFlower],
-  looseflowers: [LooseFlowersFlower, LooseFlowersPluralFlower],
+  looseflower: [LooseFlowerCategory],
+  looseflowers: [LooseFlowerCategory],
   marigold: [MarigoldFlower, MarigoldLowerFlower],
   orchid: [OrchidFlower, OrchidLowerFlower],
   lily: [LilyFlower, LilyLowerFlower],
   jasmine: [JasmineFlower, JasmineLowerFlower],
-  rose: [RoseFlower, Flower, RosePetalFlower],
+  flowerstring: [FlowerGarlandsFlower],
+  flower: [FlowerCategory],
+  rose: [RoseFlower],
 
   // Garlands
   rosemodel: [Flower],
@@ -163,9 +169,19 @@ export async function getFlowersByCategory(req, res) {
 
     const targetModels = categoryModelMap[normalizedTarget] || [];
     let flowers = [];
+    const categoryFilter =
+      normalizedTarget === "flowerstring"
+        ? { category: /^flower\s+string$/i }
+        : normalizedTarget === "looseflower" || normalizedTarget === "looseflowers"
+          ? { category: /^\s*loose\s+flower\s*$/i }
+        : normalizedTarget === "flower"
+          ? { category: /^flower$/i }
+        : normalizedTarget === "rose"
+          ? { category: /^rose$/i }
+        : {};
 
     if (targetModels.length > 0) {
-      const settled = await Promise.allSettled(targetModels.map((m) => safeFind(m, {})));
+      const settled = await Promise.allSettled(targetModels.map((m) => safeFind(m, categoryFilter)));
       flowers = settled.flatMap((s) => (s.status === "fulfilled" ? s.value : []));
 
       // Deduplicate by string ID
@@ -177,7 +193,14 @@ export async function getFlowersByCategory(req, res) {
     }
 
     if (flowers.length === 0) {
-      const categoryMatcher = new RegExp(`^${escapeRegex(rawCategory)}$`, "i");
+      const categoryMatcher =
+        normalizedTarget === "flowerstring"
+          ? /^flower\s+string$/i
+          : normalizedTarget === "looseflower" || normalizedTarget === "looseflowers"
+            ? /^\s*loose\s+flower\s*$/i
+          : normalizedTarget === "flower"
+            ? /^flower$/i
+          : new RegExp(`^${escapeRegex(rawCategory)}$`, "i");
       flowers = await findAcrossCollections({ category: categoryMatcher });
     }
 
@@ -278,8 +301,6 @@ export async function getCollectionImages(_req, res) {
 
     const roseProductImage =
       (roseItem?.status === "fulfilled" && roseItem.value?.image) ||
-      (rosePetalItem?.status === "fulfilled" && rosePetalItem.value?.image) ||
-      (roseModelItem?.status === "fulfilled" && roseModelItem.value?.image) ||
       "";
 
     if (roseProductImage) {

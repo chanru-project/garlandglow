@@ -4,7 +4,7 @@ import { useShop } from "@/store/shop";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchAllFlowers, searchProducts } from "@/lib/flower-api";
-import { COLLECTION_IMAGES, formatINR, getAllKnownProducts, IMAGES, type Product } from "@/data/products";
+import { COLLECTION_IMAGES, formatINR, getAllKnownProducts, getProductPriceSuffix, IMAGES, type Product } from "@/data/products";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -147,7 +147,9 @@ function HeaderSearchBar({ isMobile = false }: { isMobile?: boolean }) {
                     <p className="line-clamp-1 text-sm font-medium text-foreground">{product.name}</p>
                     <p className="line-clamp-1 text-xs text-muted-foreground">{product.collection}</p>
                   </div>
-                  <span className="shrink-0 text-sm font-semibold text-primary">{formatINR(product.price)}</span>
+                  <span className="shrink-0 text-sm font-semibold text-primary">
+                    {formatINR(product.price)}{getProductPriceSuffix(product)}
+                  </span>
                 </Link>
               ))}
 
