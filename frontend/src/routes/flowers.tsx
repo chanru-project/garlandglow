@@ -19,24 +19,16 @@ export const Route = createFileRoute("/flowers")({
   }),
   loaderDeps: ({ search: { collection } }) => ({ collection }),
   loader: async ({ deps: { collection } }) => {
+    const targetCollection = collection || FLOWER_PAGE_COLLECTIONS[0];
     try {
-      if (collection) {
-        const categorySlug = toCategoryParam(collection);
-        const fetched = await fetchFlowersByCategory(categorySlug);
-        const flowerResults = fetched.filter(
-          (item) => item.category === "flowers" || toCategoryParam(item.collection) === categorySlug,
-        );
-        return { initialProducts: flowerResults };
-      }
-      const allProducts = await fetchAllFlowers();
-      const flowerItems = allProducts.filter(
-        (item) =>
-          item.category === "flowers" ||
-          FLOWER_PAGE_COLLECTIONS.map(toCategoryParam).includes(toCategoryParam(item.collection)),
+      const categorySlug = toCategoryParam(targetCollection);
+      const fetched = await fetchFlowersByCategory(categorySlug);
+      const flowerResults = fetched.filter(
+        (item) => item.category === "flowers" || toCategoryParam(item.collection) === categorySlug,
       );
-      return { initialProducts: flowerItems };
+      return { initialProducts: flowerResults, activeCollection: targetCollection };
     } catch {
-      return { initialProducts: [] };
+      return { initialProducts: [], activeCollection: targetCollection };
     }
   },
   head: () => ({
@@ -55,91 +47,72 @@ function toCategoryParam(value?: string) {
 function FlowersPage() {
   const loaderData = Route.useLoaderData();
   const search = Route.useSearch();
+  const activeCol = search.collection || loaderData?.activeCollection || FLOWER_PAGE_COLLECTIONS[0];
+  const [selectedCollection, setSelectedCollection] = useState<string>(activeCol);
   const [products, setProducts] = useState<Product[]>(loaderData?.initialProducts || []);
-  const [allFlowerProducts, setAllFlowerProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(!loaderData?.initialProducts?.length);
   const [error, setError] = useState<string | null>(null);
 
-  const getFallbackFlowers = useCallback(() => {
-    return PRODUCTS.filter((item) => item.category === "flowers");
+  const getFallbackFlowers = useCallback((col: string) => {
+    const categorySlug = toCategoryParam(col);
+    return PRODUCTS.filter(
+      (p) =>
+        toCategoryParam(p.collection) === categorySlug ||
+        toCategoryParam(p.sourceCategory || "") === categorySlug,
+    );
   }, []);
 
-  const loadAllProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const allProducts = await fetchAllFlowers();
-      const flowerItems = allProducts.filter(
-        (item) => item.category === "flowers" || FLOWER_PAGE_COLLECTIONS.map(toCategoryParam).includes(toCategoryParam(item.collection)),
-      );
-      const itemsToSet = flowerItems.length > 0 ? flowerItems : getFallbackFlowers();
-      setAllFlowerProducts(itemsToSet);
-      setProducts(itemsToSet);
-    } catch {
-      const fallback = getFallbackFlowers();
-      setAllFlowerProducts(fallback);
-      setProducts(fallback);
-    } finally {
-      setLoading(false);
-    }
-  }, [getFallbackFlowers]);
+  const loadCategoryProducts = useCallback(
+    async (col: string) => {
+      setLoading(true);
+      setError(null);
+
+      const categorySlug = toCategoryParam(col);
+      console.log(`[FlowersPage] Loading category products strictly for: "${col}" (${categorySlug})`);
+
+      try {
+        const fetched = await fetchFlowersByCategory(categorySlug);
+        const flowerResults = fetched.filter(
+          (item) => item.category === "flowers" || toCategoryParam(item.collection) === categorySlug,
+        );
+
+        if (flowerResults.length > 0) {
+          setProducts(flowerResults);
+        } else {
+          const filtered = getFallbackFlowers(col);
+          setProducts(filtered);
+        }
+      } catch {
+        const filtered = getFallbackFlowers(col);
+        setProducts(filtered);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [getFallbackFlowers],
+  );
 
   useEffect(() => {
-    if (loaderData?.initialProducts && loaderData.initialProducts.length > 0) {
+    const target = search.collection || FLOWER_PAGE_COLLECTIONS[0];
+    setSelectedCollection(target);
+
+    if (
+      loaderData?.initialProducts &&
+      loaderData.initialProducts.length > 0 &&
+      target === loaderData.activeCollection
+    ) {
       setProducts(loaderData.initialProducts);
       setLoading(false);
       return;
     }
 
-    if (search.collection) {
-      void handleCollectionChange(search.collection);
-      return;
-    }
+    void loadCategoryProducts(target);
+  }, [search.collection, loaderData, loadCategoryProducts]);
 
-    void loadAllProducts();
-  }, [loaderData, loadAllProducts, search.collection]);
-
-  const handleCollectionChange = async (collection: string | null) => {
-    if (!collection) {
-      await loadAllProducts();
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const categorySlug = toCategoryParam(collection);
-    console.log(`[FlowersPage] Loading category products strictly for: "${collection}" (${categorySlug})`);
-
-    try {
-      const fetched = await fetchFlowersByCategory(categorySlug);
-      const flowerResults = fetched.filter(
-        (item) => item.category === "flowers" || toCategoryParam(item.collection) === categorySlug,
-      );
-
-      if (flowerResults.length > 0) {
-        setProducts(flowerResults);
-      } else {
-        // Strict fallback filter for ONLY this selected category
-        const fallbackSource = getFallbackFlowers();
-        const filtered = fallbackSource.filter(
-          (p) =>
-            toCategoryParam(p.collection) === categorySlug ||
-            toCategoryParam(p.sourceCategory || "") === categorySlug,
-        );
-        setProducts(filtered);
-      }
-    } catch {
-      const fallbackSource = getFallbackFlowers();
-      const filtered = fallbackSource.filter(
-        (p) =>
-          toCategoryParam(p.collection) === categorySlug ||
-          toCategoryParam(p.sourceCategory || "") === categorySlug,
-      );
-      setProducts(filtered);
-    } finally {
-      setLoading(false);
-    }
+  const handleCollectionChange = (collection: string | null) => {
+    const target = collection || FLOWER_PAGE_COLLECTIONS[0];
+    setSelectedCollection(target);
+    void loadCategoryProducts(target);
   };
 
   return (
@@ -148,8 +121,9 @@ function FlowersPage() {
       eyebrow="Farm-fresh blooms"
       products={products}
       collections={FLOWER_PAGE_COLLECTIONS}
-      activeCollection={search.collection}
+      activeCollection={selectedCollection}
       searchQuery={search.q}
+      showAllOption={false}
       loading={loading}
       error={error}
       onCollectionChange={handleCollectionChange}

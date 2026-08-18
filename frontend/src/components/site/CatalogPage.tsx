@@ -17,6 +17,7 @@ export function CatalogPage({
   activeCollection,
   searchQuery,
   showSidebar = true,
+  showAllOption = true,
   loading = false,
   error = null,
   onCollectionChange,
@@ -28,11 +29,14 @@ export function CatalogPage({
   activeCollection?: string;
   searchQuery?: string;
   showSidebar?: boolean;
+  showAllOption?: boolean;
   loading?: boolean;
   error?: string | null;
   onCollectionChange?: (collection: string | null) => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(activeCollection ?? null);
+  const [selected, setSelected] = useState<string | null>(
+    activeCollection ?? (showAllOption ? null : collections[0] ?? null),
+  );
   const [sort, setSort] = useState<"featured" | "priceLow" | "priceHigh" | "rating">("featured");
   const derivedMaxPrice = useMemo(() => {
     const max = products.reduce((top, item) => Math.max(top, item.price), 0);
@@ -41,8 +45,8 @@ export function CatalogPage({
   const [maxPrice, setMaxPrice] = useState<number>(10000);
 
   useEffect(() => {
-    setSelected(activeCollection ?? null);
-  }, [activeCollection]);
+    setSelected(activeCollection ?? (showAllOption ? null : collections[0] ?? null));
+  }, [activeCollection, showAllOption, collections]);
 
   useEffect(() => {
     setMaxPrice(derivedMaxPrice);
@@ -99,17 +103,19 @@ export function CatalogPage({
             <div>
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Categories</h3>
               <ul className="flex flex-wrap gap-2 md:max-h-[420px] md:flex-col md:gap-1 md:overflow-y-auto md:pr-2">
-                <li className="md:w-full">
-                  <button
-                    onClick={() => {
-                      setSelected(null);
-                      onCollectionChange?.(null);
-                    }}
-                    className={`rounded-full px-3 py-2 text-left text-sm md:w-full md:rounded-md ${!selected ? "bg-primary text-primary-foreground" : "bg-secondary/80 hover:bg-secondary"}`}
-                  >
-                    All
-                  </button>
-                </li>
+                {showAllOption && (
+                  <li className="md:w-full">
+                    <button
+                      onClick={() => {
+                        setSelected(null);
+                        onCollectionChange?.(null);
+                      }}
+                      className={`rounded-full px-3 py-2 text-left text-sm md:w-full md:rounded-md ${!selected ? "bg-primary text-primary-foreground" : "bg-secondary/80 hover:bg-secondary"}`}
+                    >
+                      All
+                    </button>
+                  </li>
+                )}
                 {collections.map((c) => (
                   <li key={c} className="md:w-full">
                     {c === "Customized order" ? (
