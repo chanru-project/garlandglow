@@ -72,6 +72,18 @@ function mapFlowerToProduct(item: FlowerApiItem): Product {
   const price = typeof safeItem.price === "number" ? safeItem.price : Number(safeItem.price) || 0;
   const mrp = Math.round(price * 1.15);
 
+  const isFlowerStringCategory =
+    normalizeCategoryKey(rawCategory) === "flowerstring" ||
+    normalizeCategoryKey(rawCategory) === "flowerstrings" ||
+    normalizeCategoryKey(rawCategory) === "flowersstring" ||
+    normalizeCategoryKey(rawCategory) === "flowersstrings" ||
+    normalizeCategoryKey(collection) === "flowerstring" ||
+    normalizeCategoryKey(collection) === "flowerstrings" ||
+    normalizeCategoryKey(collection) === "flowersstring" ||
+    normalizeCategoryKey(collection) === "flowersstrings" ||
+    String(rawName).toLowerCase().includes("flower string") ||
+    String(rawName).toLowerCase().includes("flowers string");
+
   return {
     id: String(safeItem._id ?? Math.random()),
     slug: slugify(rawName),
@@ -83,19 +95,14 @@ function mapFlowerToProduct(item: FlowerApiItem): Product {
     image: safeItem.image ?? "",
     rating: 4.8,
     reviews: 10,
-    colors: ["Red", "White", "Pink"],
+    colors: isFlowerStringCategory ? undefined : ["Red", "White", "Pink"],
     size:
       normalizeCategoryKey(rawCategory) === "looseflower" ||
       normalizeCategoryKey(rawCategory) === "looseflowers" ||
       normalizeCategoryKey(collection) === "looseflower" ||
       normalizeCategoryKey(collection) === "looseflowers"
         ? "1 kg"
-        : normalizeCategoryKey(rawCategory) === "flowerstring" ||
-          normalizeCategoryKey(rawCategory) === "flowerstrings" ||
-          normalizeCategoryKey(rawCategory) === "flowersstring" ||
-          normalizeCategoryKey(collection) === "flowerstring" ||
-          normalizeCategoryKey(collection) === "flowerstrings" ||
-          normalizeCategoryKey(collection) === "flowersstring"
+        : isFlowerStringCategory
         ? "1 feet"
         : "Medium",
     description: String(safeItem.description ?? ""),

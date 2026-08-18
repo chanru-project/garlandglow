@@ -167,6 +167,12 @@ function makeProduct(
   const price = overrides.price ?? 499 + ((i * 137) % 4500);
   const mrp = overrides.mrp ?? Math.round(price * (1.15 + ((i % 5) * 0.05)));
   const slug = `${collection}-${i}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const isFlowerStr =
+    collection.toLowerCase().includes("flower string") ||
+    collection.toLowerCase().includes("flowers string") ||
+    String(overrides.name || "").toLowerCase().includes("flower string") ||
+    String(overrides.name || "").toLowerCase().includes("flowers string");
+
   return {
     id: `${category}-${slug}`,
     slug,
@@ -178,7 +184,9 @@ function makeProduct(
     image: overrides.image ?? COLLECTION_DEFAULT_IMAGE[collection] ?? IMG_POOL[i % IMG_POOL.length],
     rating: 4 + ((i * 7) % 10) / 10,
     reviews: 12 + ((i * 31) % 480),
-    colors: ["Red", "White", "Pink", "Yellow", "Orange", "Mixed"].slice(0, (i % 4) + 2),
+    colors: isFlowerStr
+      ? undefined
+      : overrides.colors ?? ["Red", "White", "Pink", "Yellow", "Orange", "Mixed"].slice(0, (i % 4) + 2),
     size: ["Small", "Medium", "Large", "XL"][i % 4],
     description:
       "Hand-crafted daily with fresh, farm-sourced blooms. Assembled by our master florists using traditional techniques passed down over generations. Delivered chilled to preserve freshness for your special moment.",

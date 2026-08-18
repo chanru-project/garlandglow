@@ -59,8 +59,9 @@ function ProductPage() {
     : ["Small", "Medium", "Large", "XL"];
 
   const defaultSize = product.size ?? (isLoose ? "1 kg" : isString ? "1 feet" : "Medium");
+  const hasColors = !isString && Boolean(product.colors && product.colors.length > 0);
   const [size, setSize] = useState(defaultSize);
-  const [color, setColor] = useState(product.colors?.[0] ?? "Red");
+  const [color, setColor] = useState(hasColors ? product.colors?.[0] ?? "Red" : "");
   const [qty, setQty] = useState(1);
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderName, setOrderName] = useState("");
@@ -78,7 +79,8 @@ function ProductPage() {
     const namePart = orderName.trim() ? `Name: ${orderName}\n` : "";
     const phonePart = orderPhone.trim() ? `Phone: ${orderPhone}\n` : "";
     const notePart = orderNote.trim() ? `Notes: ${orderNote}\n` : "";
-    const msg = `Hello, I would like to place an order:\nProduct: ${product.name}\nQty: ${qty}\nSize: ${size}\nColor: ${color}\nPrice: ${formatINR(totalPrice)}\n${namePart}${phonePart}${notePart}Please confirm availability and delivery.`;
+    const colorPart = hasColors && color ? `Color: ${color}\n` : "";
+    const msg = `Hello, I would like to place an order:\nProduct: ${product.name}\nQty: ${qty}\nSize: ${size}\n${colorPart}Price: ${formatINR(totalPrice)}\n${namePart}${phonePart}${notePart}Please confirm availability and delivery.`;
     const url = `https://wa.me/${ownerNumber}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -168,7 +170,7 @@ function ProductPage() {
 
           <p className="mt-6 text-sm leading-relaxed text-foreground/80">{product.description}</p>
 
-          {product.colors && (
+          {hasColors && product.colors && (
             <div className="mt-6">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wider">Color</div>
               <div className="flex flex-wrap gap-2">
@@ -274,7 +276,7 @@ function ProductPage() {
                         quantity: qty,
                         price: product.price,
                         size,
-                        color,
+                        color: hasColors ? color : "",
                         note: orderNote,
                         image: product.image,
                       });
