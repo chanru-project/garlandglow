@@ -29,7 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export type CreateOrderPayload = {
   name: string;
   phone: string;
-  email?: string;
+  email: string;
   productId: string;
   productName: string;
   collection: string;

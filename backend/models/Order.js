@@ -25,8 +25,8 @@ const orderSchema = new mongoose.Schema(
     },
     email: {
       type: String,
+      required: true,
       trim: true,
-      default: "",
     },
     productId: {
       type: String,

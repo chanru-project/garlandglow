@@ -32,7 +32,7 @@ function getResendClient() {
 
 // from address — must be a domain verified in your Resend account
 function getFromAddress() {
-  return process.env.RESEND_FROM || "Duvix Garlands <onboarding@resend.dev>";
+  return process.env.RESEND_FROM || "Duvix Garlands <duvixgarlandss@duvix.in>";
 }
 
 // Calls Resend REST API directly — no npm package needed

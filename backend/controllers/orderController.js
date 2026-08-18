@@ -14,12 +14,17 @@ function getResendClient() {
 }
 
 function getFromAddress() {
-  return process.env.RESEND_FROM || "Duvix Garlands <onboarding@resend.dev>";
+  return process.env.RESEND_FROM || "Duvix Garlands <duvixgarlandss@duvix.in>";
 }
 
-async function sendEmail({ to, subject, html }) {
+async function sendEmail({ to, replyTo, subject, html }) {
   const apiKey = getResendClient();
   if (!apiKey) throw new Error("RESEND_API_KEY not configured");
+
+  const payload = { from: getFromAddress(), to, subject, html };
+  if (replyTo) {
+    payload.reply_to = replyTo;
+  }
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -27,7 +32,7 @@ async function sendEmail({ to, subject, html }) {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from: getFromAddress(), to, subject, html }),
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();
@@ -80,34 +85,91 @@ async function sendNotificationEmail(order) {
     return;
   }
   const html = `
-    <h2>New Buy Now order</h2>
-    <p><strong>Order number:</strong> ${escapeHtml(order.orderNumber)}</p>
-    <p><strong>Name:</strong> ${escapeHtml(order.name)}</p>
-    <p><strong>Phone:</strong> ${escapeHtml(order.phone)}</p>
-    <p><strong>Product:</strong> ${escapeHtml(order.productName)}</p>
-    <p><strong>Quantity:</strong> ${order.quantity}</p>
-    <p><strong>Color:</strong> ${escapeHtml(order.color)}</p>
-    <p><strong>Size:</strong> ${escapeHtml(order.size)}</p>
-    <p><strong>Note:</strong> ${escapeHtml(order.note || "N/A")}</p>
-    <p><strong>Total:</strong> ₹${order.total.toFixed(2)}</p>
-    <p><strong>Source:</strong> ${escapeHtml(order.source)}</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+      <h2 style="color: #b84d43; border-bottom: 2px solid #b84d43; padding-bottom: 8px;">🛍️ New Buy Now Order: ${escapeHtml(order.orderNumber)}</h2>
+      
+      <div style="background: #fdfaf6; border: 1px solid #e8e2d5; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <h3 style="margin-top: 0; color: #b84d43;">👤 Customer Details</h3>
+        <p><strong>Name:</strong> ${escapeHtml(order.name)}</p>
+        <p><strong>Phone:</strong> <a href="tel:${escapeHtml(order.phone)}" style="color: #b84d43;">${escapeHtml(order.phone)}</a></p>
+        <p><strong>Email:</strong> <a href="mailto:${escapeHtml(order.email)}" style="color: #b84d43; font-weight: bold;">${escapeHtml(order.email)}</a></p>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <h3 style="margin-top: 0; color: #111827;">📦 Order Details</h3>
+        <p><strong>Order Number:</strong> <span style="font-family: monospace; font-size: 1.1em; color: #b84d43; font-weight: bold;">${escapeHtml(order.orderNumber)}</span></p>
+        <p><strong>Product:</strong> ${escapeHtml(order.productName)}</p>
+        <p><strong>Quantity:</strong> ${order.quantity}</p>
+        ${order.color ? `<p><strong>Color:</strong> ${escapeHtml(order.color)}</p>` : ""}
+        ${order.size ? `<p><strong>Size / Length:</strong> ${escapeHtml(order.size)}</p>` : ""}
+        ${order.note ? `<p><strong>Notes:</strong> ${escapeHtml(order.note)}</p>` : ""}
+        <p style="font-size: 1.2em; font-weight: bold; color: #b84d43;"><strong>Total:</strong> ₹${order.total.toFixed(2)}</p>
+        <p><strong>Source:</strong> ${escapeHtml(order.source)}</p>
+      </div>
+    </div>
   `;
 
-  const notifyTo = process.env.ORDER_NOTIFICATION_EMAIL || "duvixgarlandss@gmail.com";
-  console.log(`[order] Sending notification email → to: ${notifyTo}`);
+  const rawNotifyTo = process.env.ORDER_NOTIFICATION_EMAIL || "duvixgarlandss@duvix.in,duvixgarlandss@gmail.com";
+  const notifyRecipients = rawNotifyTo.split(",").map((s) => s.trim()).filter(Boolean);
+  const notifyTo = notifyRecipients.length === 1 ? notifyRecipients[0] : notifyRecipients;
+
+  console.log(`[order] Sending admin notification email → to:`, notifyTo);
   const data = await sendEmail({
     to: notifyTo,
-    subject: `New Buy Now order ${order.orderNumber}`,
+    replyTo: order.email || undefined,
+    subject: `New Buy Now order ${order.orderNumber} - ${order.name} (${order.email})`,
     html,
   });
-  console.log(`[order] Email sent. id=${data.id}`);
+  console.log(`[order] Admin email sent. id=${data.id}`);
+}
+
+async function sendCustomerConfirmationEmail(order) {
+  if (!getResendClient()) return;
+  if (!order.email) return;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+      <h2 style="color: #b84d43;">Thank you for your order, ${escapeHtml(order.name)}!</h2>
+      <p>Your order has been received and is being prepared with fresh, premium blooms.</p>
+      
+      <div style="background: #fdfaf6; border: 1px solid #e8e2d5; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #444;">Order Summary</h3>
+        <p><strong>Order Number:</strong> <span style="font-family: monospace; font-weight: bold;">${escapeHtml(order.orderNumber)}</span></p>
+        <p><strong>Product:</strong> ${escapeHtml(order.productName)}</p>
+        <p><strong>Quantity:</strong> ${order.quantity}</p>
+        ${order.size ? `<p><strong>Size / Length:</strong> ${escapeHtml(order.size)}</p>` : ""}
+        ${order.color ? `<p><strong>Color:</strong> ${escapeHtml(order.color)}</p>` : ""}
+        ${order.note ? `<p><strong>Special Instructions:</strong> ${escapeHtml(order.note)}</p>` : ""}
+        <p style="font-size: 1.1em; font-weight: bold; color: #b84d43;"><strong>Total Amount:</strong> ₹${order.total.toFixed(2)}</p>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #eee; border-radius: 8px; padding: 14px; margin: 16px 0;">
+        <p style="margin: 0;"><strong>Customer Email:</strong> ${escapeHtml(order.email)}</p>
+        <p style="margin: 4px 0 0 0;"><strong>Contact Phone:</strong> ${escapeHtml(order.phone)}</p>
+      </div>
+
+      <p>Our team will contact you shortly at <strong>${escapeHtml(order.phone)}</strong> to confirm delivery timing and availability.</p>
+      <p>If you have any questions, feel free to reply directly to this email or contact us on WhatsApp.</p>
+      
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+      <p style="font-size: 12px; color: #888;">Duvix Garlands &amp; Events — Fresh Handcrafted Garlands</p>
+    </div>
+  `;
+
+  console.log(`[order] Sending customer confirmation email → to: ${order.email}`);
+  const data = await sendEmail({
+    to: order.email,
+    subject: `Order Confirmation - ${order.orderNumber} | Duvix Garlands`,
+    html,
+  });
+  console.log(`[order] Customer confirmation email sent. id=${data.id}`);
 }
 
 async function sendWhatsappNotification(order) {
   const config = getWhatsappConfig();
   if (!config) return null;
 
-  const body = `New order ${order.orderNumber}%0AName: ${encodeURIComponent(order.name)}%0APhone: ${encodeURIComponent(order.phone)}%0AProduct: ${encodeURIComponent(order.productName)}%0AQty: ${order.quantity}%0ATotal: ₹${order.total.toFixed(2)}`;
+  const body = `New order ${order.orderNumber}%0AName: ${encodeURIComponent(order.name)}%0APhone: ${encodeURIComponent(order.phone)}%0AEmail: ${encodeURIComponent(order.email || "")}%0AProduct: ${encodeURIComponent(order.productName)}%0AQty: ${order.quantity}%0ATotal: ₹${order.total.toFixed(2)}`;
 
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Messages.json`,
@@ -184,8 +246,14 @@ export async function createOrder(req, res) {
       image = "",
     } = req.body;
 
-    if (!name || !phone || !productId || !productName || !price) {
-      return res.status(400).json({ message: "Name, phone, product, and price are required." });
+    const emailTrimmed = String(email).trim();
+    if (!name || !phone || !emailTrimmed || !productId || !productName || !price) {
+      return res.status(400).json({ message: "Name, phone, email, product, and price are required." });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTrimmed)) {
+      return res.status(400).json({ message: "Please enter a valid email address." });
     }
 
     const parsedQty = Number(quantity) || 1;
@@ -195,7 +263,7 @@ export async function createOrder(req, res) {
     const order = await Order.create({
       name: String(name).trim(),
       phone: String(phone).trim(),
-      email: String(email).trim(),
+      email: emailTrimmed,
       productId: String(productId).trim(),
       productName: String(productName).trim(),
       collection: String(collection).trim(),
@@ -212,9 +280,18 @@ export async function createOrder(req, res) {
 
     try {
       console.log(`[order] Preparing notification email for order ${order.orderNumber}.`);
-      await withTimeout(sendNotificationEmail(order), 15000, "Order email");
+      await withTimeout(sendNotificationEmail(order), 15000, "Admin order email");
     } catch (mailError) {
       console.warn("[order] Order notification email failed:", mailError.message);
+    }
+
+    try {
+      if (order.email) {
+        console.log(`[order] Preparing customer confirmation email for ${order.email}.`);
+        await withTimeout(sendCustomerConfirmationEmail(order), 15000, "Customer confirmation email");
+      }
+    } catch (custMailError) {
+      console.warn("[order] Customer confirmation email failed:", custMailError.message);
     }
 
     // Send WhatsApp notifications: owner (configured) and customer (order phone)

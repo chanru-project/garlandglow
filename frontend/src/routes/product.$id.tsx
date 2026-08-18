@@ -45,6 +45,18 @@ export const Route = createFileRoute("/product/$id")({
   component: ProductPage,
 });
 
+function validateEmail(email: string): string | null {
+  const trimmed = email.trim();
+  if (!trimmed) {
+    return "Email is required.";
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmed)) {
+    return "Please enter a valid email address.";
+  }
+  return null;
+}
+
 function ProductPage() {
   const { product } = Route.useLoaderData();
   const { addToCart, toggleWishlist, inWishlist } = useShop();
@@ -68,6 +80,8 @@ function ProductPage() {
   const [orderPhone, setOrderPhone] = useState("");
   const [orderEmail, setOrderEmail] = useState("");
   const [orderNote, setOrderNote] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [related, setRelated] = useState<Product[]>([]);
   const wished = inWishlist(product.id);
@@ -76,11 +90,12 @@ function ProductPage() {
 
   function openWhatsappOrder() {
     const ownerNumber = "919342886507"; // merchant WhatsApp (no +)
-    const namePart = orderName.trim() ? `Name: ${orderName}\n` : "";
-    const phonePart = orderPhone.trim() ? `Phone: ${orderPhone}\n` : "";
-    const notePart = orderNote.trim() ? `Notes: ${orderNote}\n` : "";
+    const namePart = orderName.trim() ? `Name: ${orderName.trim()}\n` : "";
+    const phonePart = orderPhone.trim() ? `Phone: ${orderPhone.trim()}\n` : "";
+    const emailPart = orderEmail.trim() ? `Email: ${orderEmail.trim()}\n` : "";
+    const notePart = orderNote.trim() ? `Notes: ${orderNote.trim()}\n` : "";
     const colorPart = hasColors && color ? `Color: ${color}\n` : "";
-    const msg = `Hello, I would like to place an order:\nProduct: ${product.name}\nQty: ${qty}\nSize: ${size}\n${colorPart}Price: ${formatINR(totalPrice)}\n${namePart}${phonePart}${notePart}Please confirm availability and delivery.`;
+    const msg = `Hello, I would like to place an order:\nProduct: ${product.name}\nQty: ${qty}\nSize: ${size}\n${colorPart}Price: ${formatINR(totalPrice)}\n${namePart}${phonePart}${emailPart}${notePart}Please confirm availability and delivery.`;
     const url = `https://wa.me/${ownerNumber}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -242,7 +257,16 @@ function ProductPage() {
           </div>
 
           <div className="mt-4">
-            <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
+            <Dialog
+              open={orderOpen}
+              onOpenChange={(open) => {
+                setOrderOpen(open);
+                if (!open) {
+                  setEmailError("");
+                  setEmailTouched(false);
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <button className="block w-full rounded-full bg-accent py-3 text-sm font-semibold text-accent-foreground hover:brightness-110">
                   Buy now
@@ -263,12 +287,20 @@ function ProductPage() {
                       return;
                     }
 
+                    const emailErr = validateEmail(orderEmail);
+                    if (emailErr) {
+                      setEmailTouched(true);
+                      setEmailError(emailErr);
+                      toast.error(emailErr);
+                      return;
+                    }
+
                     setIsSubmittingOrder(true);
                     try {
                       const response = await createOrder({
-                        name: orderName,
-                        phone: orderPhone,
-                        email: orderEmail,
+                        name: orderName.trim(),
+                        phone: orderPhone.trim(),
+                        email: orderEmail.trim(),
                         productId: product.id,
                         productName: product.name,
                         collection: product.collection,
@@ -286,6 +318,8 @@ function ProductPage() {
                       setOrderPhone("");
                       setOrderEmail("");
                       setOrderNote("");
+                      setEmailError("");
+                      setEmailTouched(false);
                     } catch (error) {
                       toast.error(error instanceof Error ? error.message : "Failed to place order.");
                     } finally {
@@ -318,10 +352,26 @@ function ProductPage() {
                       <Input
                         id="buy-email"
                         value={orderEmail}
-                        onChange={(event) => setOrderEmail(event.target.value)}
-                        placeholder="Email address (optional)"
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          setOrderEmail(val);
+                          if (emailTouched) {
+                            setEmailError(validateEmail(val) || "");
+                          }
+                        }}
+                        onBlur={() => {
+                          setEmailTouched(true);
+                          setEmailError(validateEmail(orderEmail) || "");
+                        }}
+                        placeholder="Email address"
                         type="email"
+                        required
+                        aria-invalid={!!emailError}
+                        className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
                       />
+                      {emailError && (
+                        <p className="text-xs text-destructive">{emailError}</p>
+                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="buy-note">Notes</Label>

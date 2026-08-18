@@ -16,6 +16,18 @@ export const Route = createFileRoute("/cart")({
   component: CartPage,
 });
 
+function validateEmail(email: string): string | null {
+  const trimmed = email.trim();
+  if (!trimmed) {
+    return "Email is required.";
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmed)) {
+    return "Please enter a valid email address.";
+  }
+  return null;
+}
+
 function CartPage() {
   const { cartItems, cartTotal, setQty, removeFromCart, clearCart } = useShop();
   const [orderOpen, setOrderOpen] = useState(false);
@@ -23,6 +35,8 @@ function CartPage() {
   const [orderPhone, setOrderPhone] = useState("");
   const [orderEmail, setOrderEmail] = useState("");
   const [orderNote, setOrderNote] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   const shipping = cartTotal > 999 || cartTotal === 0 ? 0 : 99;
@@ -30,13 +44,14 @@ function CartPage() {
 
   function openWhatsappOrder() {
     const ownerNumber = "919342886507";
-    const namePart = orderName.trim() ? `Name: ${orderName}\n` : "";
-    const phonePart = orderPhone.trim() ? `Phone: ${orderPhone}\n` : "";
-    const notePart = orderNote.trim() ? `Notes: ${orderNote}\n` : "";
+    const namePart = orderName.trim() ? `Name: ${orderName.trim()}\n` : "";
+    const phonePart = orderPhone.trim() ? `Phone: ${orderPhone.trim()}\n` : "";
+    const emailPart = orderEmail.trim() ? `Email: ${orderEmail.trim()}\n` : "";
+    const notePart = orderNote.trim() ? `Notes: ${orderNote.trim()}\n` : "";
     const itemsList = cartItems
       .map((item) => `- ${item.product.name} (Qty: ${item.qty}) - ${formatINR(item.product.price * item.qty)}`)
       .join("\n");
-    const msg = `Hello, I would like to place an order for my cart:\n\n${itemsList}\n\nTotal: ${formatINR(total)}\n${namePart}${phonePart}${notePart}Please confirm availability and delivery.`;
+    const msg = `Hello, I would like to place an order for my cart:\n\n${itemsList}\n\nTotal: ${formatINR(total)}\n${namePart}${phonePart}${emailPart}${notePart}Please confirm availability and delivery.`;
     const url = `https://wa.me/${ownerNumber}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -99,7 +114,16 @@ function CartPage() {
             <span>Total</span><span className="text-primary">{formatINR(total)}</span>
           </div>
 
-          <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
+          <Dialog
+            open={orderOpen}
+            onOpenChange={(open) => {
+              setOrderOpen(open);
+              if (!open) {
+                setEmailError("");
+                setEmailTouched(false);
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <button className="mt-5 w-full rounded-full bg-accent py-3 text-sm font-semibold text-accent-foreground hover:brightness-110">
                 Proceed to checkout
@@ -120,14 +144,22 @@ function CartPage() {
                     return;
                   }
 
+                  const emailErr = validateEmail(orderEmail);
+                  if (emailErr) {
+                    setEmailTouched(true);
+                    setEmailError(emailErr);
+                    toast.error(emailErr);
+                    return;
+                  }
+
                   setIsSubmittingOrder(true);
                   try {
                     const orders = await Promise.all(
                       cartItems.map((item) =>
                         createOrder({
-                          name: orderName,
-                          phone: orderPhone,
-                          email: orderEmail,
+                          name: orderName.trim(),
+                          phone: orderPhone.trim(),
+                          email: orderEmail.trim(),
                           productId: item.product.id,
                           productName: item.product.name,
                           collection: item.product.collection,
@@ -149,6 +181,8 @@ function CartPage() {
                     setOrderPhone("");
                     setOrderEmail("");
                     setOrderNote("");
+                    setEmailError("");
+                    setEmailTouched(false);
                   } catch (error) {
                     toast.error(error instanceof Error ? error.message : "Failed to place order.");
                   } finally {
@@ -181,10 +215,26 @@ function CartPage() {
                   <Input
                     id="checkout-email"
                     value={orderEmail}
-                    onChange={(event) => setOrderEmail(event.target.value)}
-                    placeholder="Email address (optional)"
+                    onChange={(event) => {
+                      const val = event.target.value;
+                      setOrderEmail(val);
+                      if (emailTouched) {
+                        setEmailError(validateEmail(val) || "");
+                      }
+                    }}
+                    onBlur={() => {
+                      setEmailTouched(true);
+                      setEmailError(validateEmail(orderEmail) || "");
+                    }}
+                    placeholder="Email address"
                     type="email"
+                    required
+                    aria-invalid={!!emailError}
+                    className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {emailError && (
+                    <p className="text-xs text-destructive">{emailError}</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="checkout-note">Notes</Label>
