@@ -48,8 +48,13 @@ function prettyName(value?: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function isObjectId(val?: string) {
+  return /^[0-9a-fA-F]{24}$/.test(String(val || ""));
+}
+
 function resolveCollectionName(category?: string) {
   const categoryKey = normalizeCategoryKey(category);
+  if (categoryKey.includes("gift")) return "Gift";
   const allCollections = [...GARLAND_COLLECTIONS, ...FLOWER_COLLECTIONS];
   const known = allCollections.find((collection) => normalizeCategoryKey(collection) === categoryKey);
   return known ?? prettyName(category);
@@ -57,19 +62,29 @@ function resolveCollectionName(category?: string) {
 
 function resolveCategoryType(category?: string): Product["category"] {
   const categoryKey = normalizeCategoryKey(category);
+  if (categoryKey.includes("gift")) return "flowers";
   const isFlowerCategory = FLOWER_COLLECTIONS.some(
     (collection) => normalizeCategoryKey(collection) === categoryKey,
   );
   return isFlowerCategory ? "flowers" : "garlands";
 }
 
-function mapFlowerToProduct(item: FlowerApiItem): Product {
+function mapFlowerToProduct(item: FlowerApiItem, index = 0): Product {
   const safeItem = item || ({} as FlowerApiItem);
-  const rawCategory = safeItem.category ?? "";
-  const rawName = safeItem.name ?? safeItem._id ?? "flower";
+  const rawCategory = safeItem.category ?? "gifts";
+  const isGift =
+    normalizeCategoryKey(rawCategory).includes("gift") ||
+    normalizeCategoryKey(safeItem.category).includes("gift");
+
+  let rawName = safeItem.name;
+  if (!rawName || isObjectId(rawName) || rawName.toLowerCase() === "flower") {
+    rawName = isGift ? `Gift Item ${index + 1}` : `Flower Item ${index + 1}`;
+  }
+
   const collection = resolveCollectionName(rawCategory);
   const categoryType = resolveCategoryType(rawCategory);
-  const price = typeof safeItem.price === "number" ? safeItem.price : Number(safeItem.price) || 0;
+  const parsedPrice = typeof safeItem.price === "number" ? safeItem.price : Number(safeItem.price);
+  const price = Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 1499;
   const mrp = Math.round(price * 1.15);
 
   const isFlowerStringCategory =
@@ -86,7 +101,7 @@ function mapFlowerToProduct(item: FlowerApiItem): Product {
 
   return {
     id: String(safeItem._id ?? Math.random()),
-    slug: slugify(rawName),
+    slug: slugify(String(rawName)),
     name: String(rawName),
     category: categoryType,
     collection,
@@ -105,22 +120,38 @@ function mapFlowerToProduct(item: FlowerApiItem): Product {
         : isFlowerStringCategory
         ? "1 feet"
         : "Medium",
-    description: String(safeItem.description ?? ""),
+    description: String(
+      safeItem.description ||
+        "Handcrafted premium floral item with fresh farm-sourced blooms, delivered with love.",
+    ),
     inStock: true,
-    newArrival: collection === "Lotus",
+    newArrival: (collection === "Lotus" || collection === "Rose Model" || collection === "Rose Petal" || collection === "Nandhiyavattai" || collection === "Chamanki") && !isGift,
     sourceCategory: rawCategory,
   };
 }
 
-function mapFlowerToProductForRequestedCategory(item: FlowerApiItem, requestedCategory?: string): Product {
-  const product = mapFlowerToProduct(item);
-  const requestedCollection = resolveCollectionName(requestedCategory);
+function mapFlowerToProductForRequestedCategory(
+  item: FlowerApiItem,
+  requestedCategory?: string,
+  index = 0,
+): Product {
+  const product = mapFlowerToProduct(item, index);
+  const isGift = normalizeCategoryKey(requestedCategory).includes("gift");
+  const requestedCollection = isGift ? "Gift" : resolveCollectionName(requestedCategory);
   const requestedCategoryType = resolveCategoryType(requestedCategory);
+
+  let rawName = item.name;
+  if (!rawName || isObjectId(rawName) || rawName.toLowerCase() === "flower") {
+    rawName = isGift ? `Gift Item ${index + 1}` : `${requestedCollection} Item ${index + 1}`;
+  }
 
   return {
     ...product,
+    name: String(rawName),
+    slug: slugify(String(rawName)),
     collection: requestedCollection,
     category: requestedCategoryType,
+    image: item.image ?? product.image,
   };
 }
 
@@ -158,14 +189,14 @@ export function resolveApiUrl(path: string) {
 export async function fetchAllFlowers() {
   const items = await request<FlowerApiItem[]>("/api/flowers");
   if (!Array.isArray(items)) return [];
-  const products = items.filter(Boolean).map(mapFlowerToProduct);
+  const products = items.filter(Boolean).map((item, index) => mapFlowerToProduct(item, index));
   registerProducts(products);
   return products;
 }
 
 export async function fetchFlowerById(id: string) {
   const item = await request<FlowerApiItem>(`/api/flowers/${id}`);
-  const product = mapFlowerToProduct(item);
+  const product = mapFlowerToProduct(item, 0);
   registerProducts([product]);
   return product;
 }
@@ -173,7 +204,9 @@ export async function fetchFlowerById(id: string) {
 export async function fetchFlowersByCategory(category: string) {
   const items = await request<FlowerApiItem[]>(`/api/flowers/category/${encodeURIComponent(category || "")}`);
   if (!Array.isArray(items)) return [];
-  const products = items.filter(Boolean).map((item) => mapFlowerToProductForRequestedCategory(item, category));
+  const products = items
+    .filter(Boolean)
+    .map((item, index) => mapFlowerToProductForRequestedCategory(item, category, index));
   registerProducts(products);
   return products;
 }

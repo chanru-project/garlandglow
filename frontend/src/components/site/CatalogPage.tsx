@@ -18,6 +18,7 @@ export function CatalogPage({
   searchQuery,
   showSidebar = true,
   showAllOption = true,
+  hidePrice = false,
   loading = false,
   error = null,
   onCollectionChange,
@@ -30,6 +31,7 @@ export function CatalogPage({
   searchQuery?: string;
   showSidebar?: boolean;
   showAllOption?: boolean;
+  hidePrice?: boolean;
   loading?: boolean;
   error?: string | null;
   onCollectionChange?: (collection: string | null) => void;
@@ -191,7 +193,7 @@ export function CatalogPage({
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
+              {filtered.map((p) => <ProductCard key={p.id} product={p} hidePrice={hidePrice} />)}
             </div>
           )}
         </div>

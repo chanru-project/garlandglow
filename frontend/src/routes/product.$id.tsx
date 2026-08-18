@@ -23,7 +23,7 @@ export const Route = createFileRoute("/product/$id")({
     if (!loaderData) return { meta: [{ title: "Product not found" }, { name: "robots", content: "noindex" }] };
     return {
       meta: [
-        { title: `${loaderData.product.name} | Malligai` },
+        { title: `${loaderData.product.name} | DUVIX` },
         { name: "description", content: loaderData.product.description.slice(0, 155) },
         { property: "og:title", content: loaderData.product.name },
         { property: "og:image", content: loaderData.product.image },
@@ -62,6 +62,11 @@ function ProductPage() {
   const { addToCart, toggleWishlist, inWishlist } = useShop();
   const isLoose = isLooseFlower(product);
   const isString = isFlowerString(product);
+  const isGiftProduct =
+    product.collection?.toLowerCase().includes("gift") ||
+    // product.category === "gifts" ||
+    String(product.sourceCategory || "").toLowerCase().includes("gift") ||
+    product.name?.toLowerCase().includes("gift");
   const unitSuffix = getProductPriceSuffix(product);
 
   const sizeOptions = isLoose
@@ -89,13 +94,14 @@ function ProductPage() {
   const totalPrice = qty * product.price;
 
   function openWhatsappOrder() {
-    const ownerNumber = "919342886507"; // merchant WhatsApp (no +)
+    const ownerNumber = "918637686493"; // merchant WhatsApp (no +)
     const namePart = orderName.trim() ? `Name: ${orderName.trim()}\n` : "";
     const phonePart = orderPhone.trim() ? `Phone: ${orderPhone.trim()}\n` : "";
     const emailPart = orderEmail.trim() ? `Email: ${orderEmail.trim()}\n` : "";
     const notePart = orderNote.trim() ? `Notes: ${orderNote.trim()}\n` : "";
     const colorPart = hasColors && color ? `Color: ${color}\n` : "";
-    const msg = `Hello, I would like to place an order:\nProduct: ${product.name}\nQty: ${qty}\nSize: ${size}\n${colorPart}Price: ${formatINR(totalPrice)}\n${namePart}${phonePart}${emailPart}${notePart}Please confirm availability and delivery.`;
+    const pricePart = isGiftProduct ? "Price: Contact for pricing / Custom Gift Quote\n" : `Price: ${formatINR(totalPrice)}\n`;
+    const msg = `Hello, I would like to place an order:\nProduct: ${product.name}\nQty: ${qty}\nSize: ${size}\n${colorPart}${pricePart}${namePart}${phonePart}${emailPart}${notePart}Please confirm availability and delivery.`;
     const url = `https://wa.me/${ownerNumber}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -157,31 +163,43 @@ function ProductPage() {
           )}
           <div className="mt-2 text-xs uppercase tracking-widest text-muted-foreground">{product.collection}</div>
           <h1 className="mt-2 font-display text-3xl md:text-4xl">{product.name}</h1>
-          <div className="mt-3 flex items-center gap-2 text-sm">
-            <div className="flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-primary-foreground">
-              <Star className="h-3 w-3 fill-gold text-gold" />
-              <span className="font-semibold">{product.rating.toFixed(1)}</span>
+          {!isGiftProduct ? (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-primary-foreground">
+                <Star className="h-3 w-3 fill-gold text-gold" />
+                <span className="font-semibold">{product.rating.toFixed(1)}</span>
+              </div>
+              <span className="text-muted-foreground">{product.reviews} reviews</span>
+              <span className="text-muted-foreground">·</span>
+              <span className={product.inStock ? "text-primary" : "text-destructive"}>
+                {product.inStock ? "In stock" : "Out of stock"}
+              </span>
             </div>
-            <span className="text-muted-foreground">{product.reviews} reviews</span>
-            <span className="text-muted-foreground">·</span>
-            <span className={product.inStock ? "text-primary" : "text-destructive"}>
-              {product.inStock ? "In stock" : "Out of stock"}
-            </span>
-          </div>
+          ) : (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <span className={product.inStock ? "text-primary" : "text-destructive"}>
+                {product.inStock ? "In stock" : "Out of stock"}
+              </span>
+            </div>
+          )}
 
-          <div className="mt-6 flex items-baseline gap-3">
-            <span className="text-4xl font-semibold text-primary">
-              {formatINR(product.price)}{unitSuffix}
-            </span>
-            {product.mrp > product.price && (
-              <>
-                <span className="text-lg text-muted-foreground line-through">
-                  {formatINR(product.mrp)}{unitSuffix}
+          {!isGiftProduct && (
+            <>
+              <div className="mt-6 flex items-baseline gap-3">
+                <span className="text-4xl font-semibold text-primary">
+                  {formatINR(product.price)}{unitSuffix}
                 </span>
-              </>
-            )}
-          </div>
-          <div className="mt-1 text-xs text-muted-foreground">Inclusive of all taxes</div>
+                {product.mrp > product.price && (
+                  <>
+                    <span className="text-lg text-muted-foreground line-through">
+                      {formatINR(product.mrp)}{unitSuffix}
+                    </span>
+                  </>
+                )}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Inclusive of all taxes</div>
+            </>
+          )}
 
           <p className="mt-6 text-sm leading-relaxed text-foreground/80">{product.description}</p>
 
@@ -223,9 +241,11 @@ function ProductPage() {
                     <div className="flex-1">
                       <div className="text-xs text-muted-foreground">{product.collection}</div>
                       <div className="font-medium">{product.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatINR(product.price)}{unitSuffix}
-                      </div>
+                      {!isGiftProduct && (
+                        <div className="text-sm text-muted-foreground">
+                          {formatINR(product.price)}{unitSuffix}
+                        </div>
+                      )}
                     </div>
                     <SheetTrigger asChild>
                       <button className="rounded-full bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground">

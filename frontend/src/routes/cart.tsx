@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Your Cart | Malligai" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Your Cart | DUVIX" }, { name: "robots", content: "noindex" }] }),
   component: CartPage,
 });
 
@@ -43,7 +43,7 @@ function CartPage() {
   const total = Math.max(0, cartTotal + shipping);
 
   function openWhatsappOrder() {
-    const ownerNumber = "919342886507";
+    const ownerNumber = "918637686493";
     const namePart = orderName.trim() ? `Name: ${orderName.trim()}\n` : "";
     const phonePart = orderPhone.trim() ? `Phone: ${orderPhone.trim()}\n` : "";
     const emailPart = orderEmail.trim() ? `Email: ${orderEmail.trim()}\n` : "";

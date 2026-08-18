@@ -148,7 +148,7 @@ async function showSuccessPopup() {
 export const Route = createFileRoute("/custom")({
   head: () => ({
     meta: [
-      { title: "Custom Garland Orders | Malligai" },
+      { title: "Custom Garland Orders | DUVIX" },
       { name: "description", content: "Design your own bespoke garland — pick flowers, colors, size, budget and share reference images." },
     ],
   }),

@@ -10,11 +10,22 @@ function getProductImage(product: Product) {
   return COLLECTION_IMAGES[product.collection] ?? IMAGES.heroImg;
 }
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  hidePrice = false,
+}: {
+  product: Product;
+  hidePrice?: boolean;
+}) {
   const { addToCart, toggleWishlist, inWishlist, isAuthenticated } = useShop();
   const router = useRouter();
   const wished = inWishlist(product.id);
   const unitSuffix = getProductPriceSuffix(product);
+  const isGift =
+    hidePrice ||
+    product.collection?.toLowerCase().includes("gift") ||
+    // product.category === "gifts" ||
+    String(product.sourceCategory || "").toLowerCase().includes("gift");
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-all duration-200 md:rounded-2xl md:shadow-soft md:hover:-translate-y-1 md:hover:shadow-lg">
@@ -57,21 +68,25 @@ export function ProductCard({ product }: { product: Product }) {
         <Link to="/product/$id" params={{ id: product.id }} className="line-clamp-2 text-sm font-medium leading-snug hover:text-accent md:text-[15px]">
           {product.name}
         </Link>
-        <div className="flex items-center gap-1 text-[10px] md:text-xs">
-          <Star className="h-3 w-3 fill-gold text-gold md:h-3.5 md:w-3.5" />
-          <span className="font-semibold">{product.rating.toFixed(1)}</span>
-          <span className="text-muted-foreground">({product.reviews})</span>
-        </div>
-        <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-primary md:text-lg">
-            {formatINR(product.price)}{unitSuffix}
-          </span>
-          {product.mrp > product.price && (
-            <span className="text-[10px] text-muted-foreground line-through md:text-xs">
-              {formatINR(product.mrp)}{unitSuffix}
+        {!isGift && (
+          <div className="flex items-center gap-1 text-[10px] md:text-xs">
+            <Star className="h-3 w-3 fill-gold text-gold md:h-3.5 md:w-3.5" />
+            <span className="font-semibold">{product.rating.toFixed(1)}</span>
+            <span className="text-muted-foreground">({product.reviews})</span>
+          </div>
+        )}
+        {!isGift && (
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-primary md:text-lg">
+              {formatINR(product.price)}{unitSuffix}
             </span>
-          )}
-        </div>
+            {product.mrp > product.price && (
+              <span className="text-[10px] text-muted-foreground line-through md:text-xs">
+                {formatINR(product.mrp)}{unitSuffix}
+              </span>
+            )}
+          </div>
+        )}
 
         <button
           onClick={() => {

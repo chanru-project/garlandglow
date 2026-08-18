@@ -7,6 +7,16 @@ import { HeroCarousel } from "@/components/site/HeroCarousel";
 import { fetchAllFlowers, fetchFlowersByCategory, resolveApiUrl } from "@/lib/flower-api";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "DUVIX Flowers & Events — Fresh Garlands & Flowers for Every Occasion" },
+      {
+        name: "description",
+        content:
+          "Fresh hand-crafted garlands, flowers, event decor, stage decorations, and custom floral arrangements.",
+      },
+    ],
+  }),
   component: Home,
 });
 
@@ -68,12 +78,21 @@ function Home() {
         const handpickedByCategory = await fetchFlowersByCategory("handpicked");
         if (!mounted) return;
 
-        setBestSellers(allProducts.filter((product) => product.category === "garlands").slice(0, 8));
-        setNewArrivals(allProducts.filter((product) => product.newArrival).slice(0, 8));
+        const isGift = (product: Product) =>
+          product.collection?.toLowerCase().includes("gift") ||
+          // product.category === "gifts" ||
+          String(product.sourceCategory || "").toLowerCase().includes("gift") ||
+          product.name?.toLowerCase().includes("gift");
+
+        const nonGiftProducts = allProducts.filter((p) => !isGift(p));
+        const arrivals = nonGiftProducts.filter((product) => product.newArrival);
+
+        setBestSellers(nonGiftProducts.filter((product) => product.category === "garlands").slice(0, 8));
+        setNewArrivals(arrivals.length >= 4 ? arrivals.slice(0, 8) : nonGiftProducts.slice(0, 8));
         setHandpickedProducts(handpickedByCategory.slice(0, 6));
 
         if (handpickedByCategory.length === 0) {
-          setHandpickedProducts(allProducts.filter(isHandpickedProduct).slice(0, 6));
+          setHandpickedProducts(nonGiftProducts.filter(isHandpickedProduct).slice(0, 6));
         }
       } catch {
         if (!mounted) return;

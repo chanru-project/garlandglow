@@ -23,7 +23,7 @@ import g6 from "@/assets/g6.jpg";
 export const Route = createFileRoute("/collections/")({
   head: () => ({
     meta: [
-      { title: "Collections — Services & Categories | Malligai" },
+      { title: "Collections — Services & Categories | DUVIX" },
       {
         name: "description",
         content:

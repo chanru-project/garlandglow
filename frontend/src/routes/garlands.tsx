@@ -11,7 +11,7 @@ export const Route = createFileRoute("/garlands")({
   }),
   head: () => ({
     meta: [
-      { title: "Garlands — Wedding, Temple, Rose, Jasmine & More | Malligai" },
+      { title: "Garlands — Wedding, Temple, Rose, Jasmine & More | DUVIX" },
       { name: "description", content: "Shop hand-crafted garlands: wedding varmalas, temple malas, rose, jasmine, marigold and designer garlands. Fresh, delivered." },
     ],
   }),

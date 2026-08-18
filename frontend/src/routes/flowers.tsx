@@ -33,7 +33,7 @@ export const Route = createFileRoute("/flowers")({
   },
   head: () => ({
     meta: [
-      { title: "Fresh Flowers — Roses, Jasmines, Lilies, Orchids & Bouquets | Malligai" },
+      { title: "Fresh Flowers — Roses, Jasmines, Lilies, Orchids & Bouquets | DUVIX" },
       { name: "description", content: "Fresh roses, jasmine, lilies, orchids, bouquets, flower baskets and boxes — hand-picked and delivered chilled." },
     ],
   }),

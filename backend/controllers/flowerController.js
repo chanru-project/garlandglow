@@ -28,6 +28,10 @@ import {
   LooseFlowersFlower,
   LooseFlowersPluralFlower,
   LooseFlowerCategory,
+  GiftProductsFlower,
+  GiftsFlower,
+  GiftFlower,
+  GiftProductsNoSpaceFlower,
 } from "../models/Flower.js";
 
 function escapeRegex(value) {
@@ -81,6 +85,12 @@ function sortSpecialCollectionItems(items = []) {
 }
 
 const categoryModelMap = {
+  // Gifts & Surprises
+  gifts: [GiftProductsFlower, GiftsFlower, GiftFlower, GiftProductsNoSpaceFlower],
+  gift: [GiftProductsFlower, GiftsFlower, GiftFlower, GiftProductsNoSpaceFlower],
+  giftproducts: [GiftProductsFlower, GiftsFlower, GiftFlower, GiftProductsNoSpaceFlower],
+  giftproduct: [GiftProductsFlower, GiftsFlower, GiftFlower, GiftProductsNoSpaceFlower],
+
   // Fresh Flowers
   flowerboxes: [FlowerBoxesFlower],
   flowerbaskets: [FlowerBasketsFlower, FlowerBasketsPluralFlower],
@@ -246,6 +256,7 @@ export async function getCollectionImages(_req, res) {
       flowerBasketsItem,
       flowerBoxesItem,
       looseFlowersItem,
+      giftProductsItem,
     ] = await Promise.allSettled([
       Flower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
       RosePetalFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
@@ -265,6 +276,7 @@ export async function getCollectionImages(_req, res) {
       FlowerBasketsFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
       FlowerBoxesFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
       LooseFlowersFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
+      GiftProductsFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
     ]);
 
     const collectionBuckets = [
@@ -279,7 +291,7 @@ export async function getCollectionImages(_req, res) {
       { label: "Handpicked", item: handpickedItem },
       { label: "Special", item: specialItem },
 
-      // Fresh Flowers
+      // Fresh Flowers & Gifts
       { label: "Rose", item: roseItem },
       { label: "Jasmine", item: jasmineItem },
       { label: "Lily", item: lilyItem },
@@ -289,6 +301,8 @@ export async function getCollectionImages(_req, res) {
       { label: "Flower Baskets", item: flowerBasketsItem },
       { label: "Flower Boxes", item: flowerBoxesItem },
       { label: "Loose Flowers", item: looseFlowersItem },
+      { label: "Gift", item: giftProductsItem },
+      { label: "Gifts", item: giftProductsItem },
     ];
 
     collectionBuckets.forEach(({ label, item }) => {

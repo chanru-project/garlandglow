@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as GarlandsRouteImport } from './routes/garlands'
 import { Route as FlowersRouteImport } from './routes/flowers'
 import { Route as CustomRouteImport } from './routes/custom'
@@ -37,6 +38,11 @@ const TrackRoute = TrackRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiftsRoute = GiftsRouteImport.update({
+  id: '/gifts',
+  path: '/gifts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GarlandsRoute = GarlandsRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/custom': typeof CustomRoute
   '/flowers': typeof FlowersRoute
   '/garlands': typeof GarlandsRoute
+  '/gifts': typeof GiftsRoute
   '/search': typeof SearchRoute
   '/track': typeof TrackRoute
   '/wishlist': typeof WishlistRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/custom': typeof CustomRoute
   '/flowers': typeof FlowersRoute
   '/garlands': typeof GarlandsRoute
+  '/gifts': typeof GiftsRoute
   '/search': typeof SearchRoute
   '/track': typeof TrackRoute
   '/wishlist': typeof WishlistRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/custom': typeof CustomRoute
   '/flowers': typeof FlowersRoute
   '/garlands': typeof GarlandsRoute
+  '/gifts': typeof GiftsRoute
   '/search': typeof SearchRoute
   '/track': typeof TrackRoute
   '/wishlist': typeof WishlistRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/custom'
     | '/flowers'
     | '/garlands'
+    | '/gifts'
     | '/search'
     | '/track'
     | '/wishlist'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/custom'
     | '/flowers'
     | '/garlands'
+    | '/gifts'
     | '/search'
     | '/track'
     | '/wishlist'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/custom'
     | '/flowers'
     | '/garlands'
+    | '/gifts'
     | '/search'
     | '/track'
     | '/wishlist'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   CustomRoute: typeof CustomRoute
   FlowersRoute: typeof FlowersRoute
   GarlandsRoute: typeof GarlandsRoute
+  GiftsRoute: typeof GiftsRoute
   SearchRoute: typeof SearchRoute
   TrackRoute: typeof TrackRoute
   WishlistRoute: typeof WishlistRoute
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gifts': {
+      id: '/gifts'
+      path: '/gifts'
+      fullPath: '/gifts'
+      preLoaderRoute: typeof GiftsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/garlands': {
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomRoute: CustomRoute,
   FlowersRoute: FlowersRoute,
   GarlandsRoute: GarlandsRoute,
+  GiftsRoute: GiftsRoute,
   SearchRoute: SearchRoute,
   TrackRoute: TrackRoute,
   WishlistRoute: WishlistRoute,

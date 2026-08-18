@@ -4,8 +4,8 @@ import { IMAGES } from "@/data/products";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About Malligai — Our Story | Garlands & Flowers" },
-      { name: "description", content: "Three generations of master florists crafting fresh garlands and flowers for Chennai's families." },
+      { title: "About Us | DUVIX Flowers & Events" },
+      { name: "description", content: "Fresh garlands, flowers and event decor for every special moment." },
     ],
   }),
   component: About,
@@ -17,7 +17,7 @@ function About() {
       <div className="text-xs uppercase tracking-[0.3em] text-accent">Our story</div>
       <h1 className="mt-2 font-display text-4xl md:text-5xl">welcome to DUVIX flowers & events!</h1>
       <div className="mt-8 grid gap-10 md:grid-cols-2">
-        <img src={IMAGES.heroImg} alt="Malligai florists" className="rounded-2xl object-cover shadow-elegant" />
+        <img src={IMAGES.heroImg} alt="DUVIX florists & events" className="rounded-2xl object-cover shadow-elegant" />
         <div className="space-y-4 text-foreground/85">
           <p>Welcome to DUVIX Flowers & Events, your trusted destination for premium flowers, elegant event décor, and complete event management services.  DUVIX is proudly based in Dindigul and serves customers across Dindigul, Madurai, and surrounding areas.
 

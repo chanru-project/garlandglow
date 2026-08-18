@@ -10,8 +10,8 @@ const contactEndpoint = apiBaseUrl ? `${apiBaseUrl}/api/contact` : "/api/contact
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact Us | Malligai Garlands & Flowers" },
-      { name: "description", content: "Call, message or visit our Chennai store. We reply within 30 minutes." },
+      { title: "Contact Us | DUVIX Garlands & Events" },
+      { name: "description", content: "Call, message or visit us. We reply within 30 minutes." },
     ],
   }),
   component: Contact,

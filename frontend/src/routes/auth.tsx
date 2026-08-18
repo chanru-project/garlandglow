@@ -5,7 +5,7 @@ import { useRouter, Link } from "@tanstack/react-router";
 import { useShop } from "@/store/shop";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in | Malligai" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Sign in | DUVIX" }, { name: "robots", content: "noindex" }] }),
   component: Auth,
 });
 
@@ -19,54 +19,55 @@ function Auth() {
 
   if (isAuthenticated && currentUser) {
     return (
-      <div className="mx-auto grid max-w-md px-6 py-16 text-center">
-        <div className="rounded-2xl border border-border bg-card p-8 shadow-elegant">
-          <div className="text-xs uppercase tracking-[0.3em] text-accent">Account active</div>
-          <h1 className="mt-1 font-display text-3xl">Welcome back, {currentUser.name}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">You are signed in as {currentUser.email}.</p>
-          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <Link to="/wishlist" className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-accent hover:text-accent-foreground">
-              Go to wishlist
-            </Link>
-            <button
-              onClick={() => {
-                signOut();
-                toast.success("Signed out successfully");
-              }}
-              className="inline-flex items-center justify-center rounded-full border border-destructive/40 bg-destructive/10 px-6 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
-            >
-              Sign out
-            </button>
-          </div>
+      <div className="mx-auto max-w-md px-6 py-20 text-center">
+        <h1 className="font-display text-3xl">My Account</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Signed in as {currentUser.email}</p>
+        <p className="mt-1 text-sm font-medium">{currentUser.name}</p>
+        <div className="mt-6 flex flex-col gap-3">
+          <Link to="/wishlist" className="rounded-full border border-border py-2 text-sm font-semibold hover:border-accent">
+            View Wishlist
+          </Link>
+          <button
+            onClick={() => {
+              signOut();
+              toast("Signed out");
+            }}
+            className="rounded-full bg-primary py-2 text-sm font-semibold text-primary-foreground"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     );
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const result = mode === "login"
-      ? signIn(email, password)
-      : signUp(name, email, password);
-
-    if (!result.ok) {
-      toast.error(result.error);
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || (mode === "signup" && !name)) {
+      toast.error("Please fill all required fields.");
       return;
     }
-
-    toast.success(mode === "login" ? "Signed in" : "Account created", {
-      description: mode === "login" ? "You can now save items to your wishlist." : "Your account is ready.",
-    });
-    router.navigate({ to: "/wishlist" });
+    if (mode === "login") {
+      const ok = signIn(email, password);
+      if (!ok) {
+        toast.error("Invalid email or password.");
+        return;
+      }
+      toast.success("Welcome back!");
+      router.history.back();
+    } else {
+      signUp(email, password, name);
+      toast.success("Account created!");
+      router.history.back();
+    }
   };
 
   return (
-    <div className="mx-auto grid max-w-md px-6 py-16">
-      <div className="rounded-2xl border border-border bg-card p-8 shadow-elegant">
-        <div className="text-xs uppercase tracking-[0.3em] text-accent">Welcome</div>
-        <h1 className="mt-1 font-display text-3xl">{mode === "login" ? "Sign in" : "Create account"}</h1>
+    <div className="mx-auto max-w-md px-6 py-16">
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-soft">
+        <h1 className="font-display text-3xl">{mode === "login" ? "Sign in" : "Create an account"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "login" ? "Sign in to save items to your wishlist." : "Create an account to keep your saved items."}
+          {mode === "login" ? "Access your saved items & orders" : "Save your favorite garlands & faster checkout"}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
@@ -75,23 +76,23 @@ function Auth() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Full name"
+              placeholder="Your name"
               className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
             />
           )}
           <input
             required
+            type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            placeholder="Email"
+            placeholder="Email address"
             className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
           />
           <input
             required
+            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            type="password"
             placeholder="Password"
             className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
           />
@@ -101,7 +102,7 @@ function Auth() {
         </form>
 
         <div className="mt-5 text-center text-sm text-muted-foreground">
-          {mode === "login" ? "New to Malligai?" : "Already have an account?"}{" "}
+          {mode === "login" ? "New to DUVIX?" : "Already have an account?"}{" "}
           <button onClick={() => setMode(mode === "login" ? "signup" : "login")} className="font-semibold text-accent hover:underline">
             {mode === "login" ? "Create account" : "Sign in"}
           </button>

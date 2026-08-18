@@ -3,7 +3,7 @@ import { Package, Check } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/track")({
-  head: () => ({ meta: [{ title: "Track Order | Malligai" }] }),
+  head: () => ({ meta: [{ title: "Track Order | DUVIX" }] }),
   component: Track,
 });
 

@@ -99,3 +99,13 @@ export const LooseFlowersPluralFlower =
   mongoose.models.LooseFlowersPluralFlower || mongoose.model("LooseFlowersPluralFlower", flowerSchema, "looseflowers");
 export const LooseFlowerCategory =
   mongoose.models.LooseFlowerCategory || mongoose.model("LooseFlowerCategory", flowerSchema, "Loose Flowers");
+
+// Gift Models mapped to exact MongoDB collection names
+export const GiftProductsFlower =
+  mongoose.models.GiftProductsFlower || mongoose.model("GiftProductsFlower", flowerSchema, "gift products");
+export const GiftsFlower =
+  mongoose.models.GiftsFlower || mongoose.model("GiftsFlower", flowerSchema, "gifts");
+export const GiftFlower =
+  mongoose.models.GiftFlower || mongoose.model("GiftFlower", flowerSchema, "gift");
+export const GiftProductsNoSpaceFlower =
+  mongoose.models.GiftProductsNoSpaceFlower || mongoose.model("GiftProductsNoSpaceFlower", flowerSchema, "giftproducts");

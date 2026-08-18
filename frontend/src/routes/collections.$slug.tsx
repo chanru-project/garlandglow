@@ -351,7 +351,7 @@ export const Route = createFileRoute("/collections/$slug")({
     const name = decodeName(params.slug);
     return {
       meta: [
-        { title: `${name} — Malligai Collections` },
+        { title: `${name} — DUVIX Collections` },
         { name: "description", content: `Explore ${name} collections and services.` },
       ],
     };

@@ -10,6 +10,7 @@ const NAV = [
   { to: "/", label: "Home" },
   { to: "/garlands", label: "Garlands" },
   { to: "/flowers", label: "Flowers" },
+  { to: "/gifts", label: "Gift" },
   { to: "/collections", label: "Collections" },
   { to: "/collections/wedding", label: "Events" },
   { to: "/custom", label: "Custom Orders" },
@@ -20,6 +21,7 @@ const NAV = [
 const QUICK_LINKS = [
   { to: "/garlands", label: "Garlands" },
   { to: "/flowers", label: "Flowers" },
+  { to: "/gifts", label: "Gift" },
   { to: "/collections/wedding", label: "Events" },
   { to: "/custom", label: "Customer Order" },
   { to: "/about", label: "About" },
