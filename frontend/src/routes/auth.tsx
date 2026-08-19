@@ -39,21 +39,33 @@ function GoogleLogo() {
   );
 }
 
+// Module-level singletons: Google Identity Services must only be loaded/initialized once per
+// page, regardless of how many times the Auth component mounts (e.g. after navigating away and
+// back, or unrelated store updates re-rendering this route). Re-running initialize()/renderButton()
+// repeatedly caused the intermittent, device-dependent sign-in failures.
+let googleScriptPromise: Promise<void> | null = null;
+let googleInitPromise: Promise<void> | null = null;
+
 function loadGoogleScript(): Promise<void> {
   if (window.google?.accounts?.id) return Promise.resolve();
-  const existing = document.querySelector(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
-  if (existing) {
-    return new Promise((resolve) => existing.addEventListener("load", () => resolve()));
+  if (!googleScriptPromise) {
+    googleScriptPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
+      if (existing) {
+        existing.addEventListener("load", () => resolve());
+        existing.addEventListener("error", () => reject(new Error("Failed to load Google Sign-In script.")));
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = GOOGLE_SCRIPT_SRC;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Google Sign-In script."));
+      document.head.appendChild(script);
+    });
   }
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = GOOGLE_SCRIPT_SRC;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google Sign-In script."));
-    document.head.appendChild(script);
-  });
+  return googleScriptPromise;
 }
 
 function Auth() {
@@ -66,6 +78,11 @@ function Auth() {
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const { signIn, signUp, signInWithGoogle, isAuthenticated, currentUser, signOut } = useShop();
   const router = useRouter();
+
+  // Kept up to date every render, but read via .current inside the stable credential callback below
+  // so the one-time initialize() call never needs to be re-run when these identities change.
+  const latestRef = useRef({ signInWithGoogle, router });
+  latestRef.current = { signInWithGoogle, router };
 
   useEffect(() => {
     if (isAuthenticated) return;
@@ -86,13 +103,13 @@ function Auth() {
       setGoogleLoading(true);
       try {
         const user = await verifyGoogleCredential(response.credential);
-        const result = signInWithGoogle(user);
+        const result = latestRef.current.signInWithGoogle(user);
         if (!result.ok) {
           toast.error(result.error);
           return;
         }
         toast.success("Signed in with Google!");
-        router.history.back();
+        latestRef.current.router.history.back();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Google sign-in failed. Please try again.");
       } finally {
@@ -102,22 +119,16 @@ function Auth() {
 
     loadGoogleScript()
       .then(() => {
-        if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) {
+        if (cancelled || !window.google?.accounts?.id) {
           throw new Error("Google Identity Services did not load correctly.");
         }
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleCredentialResponse,
-        });
-        const width = Math.min(400, Math.max(240, Math.round(googleButtonRef.current.clientWidth || 320)));
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          type: "standard",
-          theme: "outline",
-          size: "large",
-          shape: "pill",
-          width,
-          text: mode === "login" ? "signin_with" : "signup_with",
-        });
+        if (!googleInitPromise) {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response: { credential?: string }) => handleCredentialResponse(response),
+          });
+          googleInitPromise = Promise.resolve();
+        }
         if (!cancelled) setGoogleStatus("ready");
       })
       .catch((error) => {
@@ -129,7 +140,27 @@ function Auth() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, mode, router, signInWithGoogle]);
+    // Intentionally only depends on isAuthenticated: initialize() must run at most once per page
+    // load. Depending on `signInWithGoogle`/`router` here would re-run this effect (and re-init GIS)
+    // whenever unrelated store state changes recreate those function identities.
+  }, [isAuthenticated]);
+
+  // Render (or re-render) the actual Google button whenever the container becomes available or the
+  // mode changes, independent of the one-time initialize() above.
+  useEffect(() => {
+    if (googleStatus !== "ready" || !googleButtonRef.current || !window.google?.accounts?.id) return;
+    const container = googleButtonRef.current;
+    container.innerHTML = "";
+    const width = Math.min(400, Math.max(240, Math.round(container.clientWidth || 320)));
+    window.google.accounts.id.renderButton(container, {
+      type: "standard",
+      theme: "outline",
+      size: "large",
+      shape: "pill",
+      width,
+      text: mode === "login" ? "signin_with" : "signup_with",
+    });
+  }, [googleStatus, mode]);
 
   const handleGoogleFallbackClick = () => {
     if (googleStatus === "error") {
