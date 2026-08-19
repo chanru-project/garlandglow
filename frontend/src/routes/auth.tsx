@@ -264,26 +264,22 @@ function Auth() {
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <div className="relative w-full">
-          <button
-            type="button"
-            onClick={googleStatus !== "ready" ? handleGoogleFallbackClick : undefined}
-            disabled={googleLoading}
-            aria-hidden={googleStatus === "ready"}
-            tabIndex={googleStatus === "ready" ? -1 : 0}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-border bg-white py-3 text-sm font-semibold text-foreground shadow-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <GoogleLogo />
-            {googleLoading ? "Signing in…" : "Continue with Google"}
-          </button>
-          {/* Google's real (accessible, popup-based) button is overlaid invisibly on top so clicks open the official account chooser reliably. */}
-          <div
-            ref={googleButtonRef}
-            aria-hidden={googleStatus !== "ready"}
-            className={`absolute inset-0 overflow-hidden rounded-full opacity-0 [&>div]:!w-full [&_iframe]:!w-full ${
-              googleStatus === "ready" ? "pointer-events-auto" : "pointer-events-none"
-            }`}
-          />
+        <div className="relative flex min-h-[48px] w-full items-center justify-center">
+          {/* Google's real button is rendered here directly (visible, not hidden) — browsers block
+              popups triggered from clicks on invisible/opacity-0 iframes as an anti-clickjacking
+              measure, which is why an overlay trick silently failed in production. */}
+          <div ref={googleButtonRef} className="flex w-full justify-center [&>div]:!w-full" />
+          {googleStatus !== "ready" && (
+            <button
+              type="button"
+              onClick={handleGoogleFallbackClick}
+              disabled={googleLoading}
+              className="absolute inset-0 flex w-full items-center justify-center gap-3 rounded-full border border-border bg-white py-3 text-sm font-semibold text-foreground shadow-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <GoogleLogo />
+              {googleStatus === "error" ? "Google sign-in unavailable" : "Continue with Google"}
+            </button>
+          )}
         </div>
 
         <div className="mt-5 text-center text-sm text-muted-foreground">
