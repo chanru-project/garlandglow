@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { connectDB } from "./config/db.js";
 import flowerRoutes from "./routes/flowerRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const envPath = fileURLToPath(new URL(".env", import.meta.url));
 const envExamplePath = fileURLToPath(new URL(".env.example", import.meta.url));
@@ -19,10 +20,23 @@ if (envResult.error && existsSync(envExamplePath)) {
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const corsOrigins = (process.env.CORS_ORIGINS || "")
+
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "https://duvix.in",
+  "https://www.duvix.in",
+  "https://garlandglow-1.onrender.com",
+  "https://garlandglow.onrender.com",
+];
+
+const envCorsOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envCorsOrigins]));
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY || "";
@@ -71,9 +85,22 @@ function withTimeout(promise, timeoutMs, label) {
   ]);
 }
 
-app.use(cors({ origin: corsOrigins.length ? corsOrigins : true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive default for cross-origin client apps
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/auth", authRoutes);
 app.use("/api/flowers", flowerRoutes);
 app.use("/api/orders", orderRoutes);
 

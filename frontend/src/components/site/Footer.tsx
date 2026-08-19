@@ -39,6 +39,7 @@ export function Footer() {
               <li><Link to="/garlands">All Garlands</Link></li>
               <li><Link to="/flowers">All Flowers</Link></li>
               <li><Link to="/collections/$slug" params={{ slug: "wedding" }}>Events</Link></li>
+              <li><Link to="/gifts">Gift</Link></li>
               <li><Link to="/custom">Custom Orders</Link></li>
             </ul>
           </div>

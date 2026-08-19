@@ -60,13 +60,31 @@ function resolveCollectionName(category?: string) {
   return known ?? prettyName(category);
 }
 
+const ALL_KNOWN_GARLAND_KEYS = new Set([
+  "rosemodel",
+  "rosepetal",
+  "nandhiyavattai",
+  "chamanki",
+  "lotus",
+  "special",
+  "mallipoo",
+  "templegarlands",
+  "handpicked",
+  "customizedorder",
+  "customized",
+  "garlands",
+  "garland",
+]);
+
 function resolveCategoryType(category?: string): Product["category"] {
   const categoryKey = normalizeCategoryKey(category);
   if (categoryKey.includes("gift")) return "flowers";
-  const isFlowerCategory = FLOWER_COLLECTIONS.some(
-    (collection) => normalizeCategoryKey(collection) === categoryKey,
-  );
-  return isFlowerCategory ? "flowers" : "garlands";
+
+  const isGarland =
+    ALL_KNOWN_GARLAND_KEYS.has(categoryKey) ||
+    GARLAND_COLLECTIONS.some((collection) => normalizeCategoryKey(collection) === categoryKey);
+
+  return isGarland ? "garlands" : "flowers";
 }
 
 function mapFlowerToProduct(item: FlowerApiItem, index = 0): Product {

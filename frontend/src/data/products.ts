@@ -54,6 +54,10 @@ export const COLLECTION_IMAGES: Record<string, string> = {
   "Bouquets": bouquetImg,
   "Mallipoo": r10Img,
   "Special": r12Img,
+  "Flower String": marigoldImg,
+  "Flower Strings": marigoldImg,
+  "Loose Flowers": jasmineImg,
+  "Loose Flower": jasmineImg,
 };
 
 const COLLECTION_DEFAULT_IMAGE: Record<string, string> = {
@@ -72,6 +76,10 @@ const COLLECTION_DEFAULT_IMAGE: Record<string, string> = {
   "Bouquets": bouquetImg,
   "Mallipoo": r10Img,
   "Special": r12Img,
+  "Flower String": marigoldImg,
+  "Flower Strings": marigoldImg,
+  "Loose Flowers": jasmineImg,
+  "Loose Flower": jasmineImg,
 };
 
 export const ROSEMODEL_IMAGES = [
@@ -130,17 +138,11 @@ export const GARLAND_COLLECTIONS = [
 ];
 
 export const FLOWER_COLLECTIONS = [
-  "Rose",
-  "Jasmine",
   "Flower String",
-  "Flower",
-  "Lily",
-  "Orchid",
-  "Marigold",
+  "Loose Flowers",
+  "Rose",
   "Bouquets",
-  "Flower Baskets",
   "Flower Boxes",
-  "Loose Flower",
 ];
 
 export const OCCASIONS = [

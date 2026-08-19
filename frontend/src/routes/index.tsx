@@ -85,20 +85,25 @@ function Home() {
           product.name?.toLowerCase().includes("gift");
 
         const nonGiftProducts = allProducts.filter((p) => !isGift(p));
-        const arrivals = nonGiftProducts.filter((product) => product.newArrival);
+        const garlandProducts = nonGiftProducts.filter((product) => product.category === "garlands");
+        const fallbackGarlands = PRODUCTS.filter((p) => p.category === "garlands");
+        const finalGarlands = garlandProducts.length > 0 ? garlandProducts : fallbackGarlands;
 
-        setBestSellers(nonGiftProducts.filter((product) => product.category === "garlands").slice(0, 8));
-        setNewArrivals(arrivals.length >= 4 ? arrivals.slice(0, 8) : nonGiftProducts.slice(0, 8));
-        setHandpickedProducts(handpickedByCategory.slice(0, 6));
+        const arrivals = garlandProducts.filter((product) => product.newArrival);
 
-        if (handpickedByCategory.length === 0) {
-          setHandpickedProducts(nonGiftProducts.filter(isHandpickedProduct).slice(0, 6));
-        }
+        setBestSellers(finalGarlands.slice(0, 8));
+        setNewArrivals(arrivals.length >= 4 ? arrivals.slice(0, 8) : finalGarlands.slice(0, 8));
+        setHandpickedProducts(
+          handpickedByCategory.length > 0
+            ? handpickedByCategory.slice(0, 6)
+            : nonGiftProducts.filter(isHandpickedProduct).slice(0, 6),
+        );
       } catch {
         if (!mounted) return;
-        setBestSellers([]);
-        setNewArrivals([]);
-        setHandpickedProducts([]);
+        const fallbackGarlands = PRODUCTS.filter((p) => p.category === "garlands");
+        setBestSellers(fallbackGarlands.slice(0, 8));
+        setNewArrivals(fallbackGarlands.slice(0, 8));
+        setHandpickedProducts(fallbackGarlands.filter(isHandpickedProduct).slice(0, 6));
       }
     }
 

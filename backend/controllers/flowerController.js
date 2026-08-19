@@ -256,7 +256,9 @@ export async function getCollectionImages(_req, res) {
       flowerBasketsItem,
       flowerBoxesItem,
       looseFlowersItem,
+      looseFlowerCategoryItem,
       giftProductsItem,
+      flowerStringItem,
     ] = await Promise.allSettled([
       Flower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
       RosePetalFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
@@ -276,8 +278,21 @@ export async function getCollectionImages(_req, res) {
       FlowerBasketsFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
       FlowerBoxesFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
       LooseFlowersFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
+      LooseFlowerCategory.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
+      LooseFlowersPluralFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
       GiftProductsFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
+      FlowerGarlandsFlower.findOne({ image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
+      FlowerCategory.findOne({ category: /^flower\s*string$/i, image: { $ne: "" } }).sort({ createdAt: -1 }).lean(),
     ]);
+
+    const resolvedLooseFlower =
+      (looseFlowerCategoryItem?.status === "fulfilled" && looseFlowerCategoryItem.value) ||
+      (looseFlowersItem?.status === "fulfilled" && looseFlowersItem.value) ||
+      null;
+
+    const resolvedFlowerString =
+      (flowerStringItem?.status === "fulfilled" && flowerStringItem.value) ||
+      null;
 
     const collectionBuckets = [
       // Garlands
@@ -300,7 +315,10 @@ export async function getCollectionImages(_req, res) {
       { label: "Bouquets", item: bouquetsItem },
       { label: "Flower Baskets", item: flowerBasketsItem },
       { label: "Flower Boxes", item: flowerBoxesItem },
-      { label: "Loose Flowers", item: looseFlowersItem },
+      { label: "Loose Flowers", item: { status: "fulfilled", value: resolvedLooseFlower } },
+      { label: "Loose Flower", item: { status: "fulfilled", value: resolvedLooseFlower } },
+      { label: "Flower String", item: { status: "fulfilled", value: resolvedFlowerString } },
+      { label: "Flower Strings", item: { status: "fulfilled", value: resolvedFlowerString } },
       { label: "Gift", item: giftProductsItem },
       { label: "Gifts", item: giftProductsItem },
     ];

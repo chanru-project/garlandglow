@@ -2,10 +2,25 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { getProduct, type Product } from "@/data/products";
 
 type CartItem = { id: string; qty: number };
-type Account = { name: string; email: string; password: string; wishlist: string[] };
+type Account = {
+  name: string;
+  email: string;
+  password?: string;
+  wishlist: string[];
+  authProvider?: "local" | "google";
+  googleId?: string;
+  picture?: string;
+};
 type Session = { email: string } | null;
 
 type AuthResult = { ok: true } | { ok: false; error: string };
+
+export type GoogleUserInfo = {
+  id: string;
+  name: string;
+  email: string;
+  picture: string;
+};
 
 type ShopCtx = {
   cart: CartItem[];
@@ -20,6 +35,7 @@ type ShopCtx = {
   inWishlist: (id: string) => boolean;
   signIn: (email: string, password: string) => AuthResult;
   signUp: (name: string, email: string, password: string) => AuthResult;
+  signInWithGoogle: (user: GoogleUserInfo) => AuthResult;
   signOut: () => void;
   cartCount: number;
   cartTotal: number;
@@ -142,6 +158,33 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         const account = accounts.find((item) => item.email === normalizedEmail);
         if (!account) return { ok: false, error: "No account found with this email. Please create one first." };
         if (account.password !== password) return { ok: false, error: "Email or password is incorrect." };
+        setSession({ email: normalizedEmail });
+        return { ok: true };
+      },
+      signInWithGoogle: (user) => {
+        const normalizedEmail = normalizeEmail(user.email);
+        if (!normalizedEmail) return { ok: false, error: "Google account did not return an email address." };
+        setAccounts((prev) => {
+          const existing = prev.find((item) => item.email === normalizedEmail);
+          if (existing) {
+            return prev.map((item) =>
+              item.email === normalizedEmail
+                ? { ...item, name: item.name || user.name, googleId: user.id, picture: user.picture, authProvider: item.authProvider ?? "google" }
+                : item,
+            );
+          }
+          return [
+            ...prev,
+            {
+              name: user.name || normalizedEmail.split("@")[0],
+              email: normalizedEmail,
+              wishlist: [],
+              authProvider: "google",
+              googleId: user.id,
+              picture: user.picture,
+            },
+          ];
+        });
         setSession({ email: normalizedEmail });
         return { ok: true };
       },

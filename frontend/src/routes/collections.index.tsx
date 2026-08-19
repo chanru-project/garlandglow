@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { IMAGES } from "@/data/products";
-import { resolveApiUrl } from "@/lib/flower-api";
+import { fetchFlowersByCategory, resolveApiUrl } from "@/lib/flower-api";
 import g1 from "@/assets/g1.jpg";
 import g2 from "@/assets/g2.avif";
 import g3 from "@/assets/g3.jpg";
@@ -116,16 +116,11 @@ const GARLAND_CATEGORIES: CategoryItem[] = [
 ];
 
 const FLOWER_CATEGORIES: CategoryItem[] = [
-  { name: "Rose", to: "/flowers", slug: "rose" },
-  { name: "Jasmine", to: "/flowers", slug: "jasmine" },
   { name: "Flower String", to: "/flowers", slug: "flower-string" },
-  { name: "Lily", to: "/flowers", slug: "lily" },
-  { name: "Orchid", to: "/flowers", slug: "orchid" },
-  { name: "Marigold", to: "/flowers", slug: "marigold" },
-  { name: "Bouquets", to: "/flowers", slug: "bouquets" },
-  { name: "Flower Baskets", to: "/flowers", slug: "flower-baskets" },
-  { name: "Flower Boxes", to: "/flowers", slug: "flower-boxes" },
   { name: "Loose Flowers", to: "/flowers", slug: "loose-flowers" },
+  { name: "Rose", to: "/flowers", slug: "rose" },
+  { name: "Bouquets", to: "/flowers", slug: "bouquets" },
+  { name: "Flower Boxes", to: "/flowers", slug: "flower-boxes" },
 ];
 
 const EVENT_CATEGORIES: CategoryItem[] = [
@@ -235,15 +230,13 @@ const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
   handpicked: g6,
 
   // Flower Categories
-  rose: IMAGES.roseImg,
-  jasmine: IMAGES.jasmineImg,
-  lily: g6,
-  orchid: g2,
-  marigold: IMAGES.marigoldImg,
-  bouquets: IMAGES.bouquetImg,
-  flowerbaskets: g3,
-  flowerboxes: g1,
+  flowerstring: IMAGES.marigoldImg,
+  flowerstrings: IMAGES.marigoldImg,
   looseflowers: IMAGES.jasmineImg,
+  looseflower: IMAGES.jasmineImg,
+  rose: IMAGES.roseImg,
+  bouquets: IMAGES.bouquetImg,
+  flowerboxes: g1,
 };
 
 function normalizeCategoryKey(value?: string) {
@@ -401,15 +394,41 @@ function CollectionsIndex() {
     const loadGarlandThumbnails = async () => {
       try {
         const response = await fetch(resolveApiUrl("/api/flowers/collections/images"));
-        if (!response.ok) {
-          throw new Error("Failed to load collection images");
+        let categoryImages: Record<string, string> = {};
+        if (response.ok) {
+          categoryImages = (await response.json()) || {};
         }
 
-        const categoryImages = await response.json();
-        if (!isMounted) return;
+        // Proactively fetch exact Flower String and Loose Flowers product images from Flowers section
+        const [flowerStringProducts, looseFlowerProducts] = await Promise.allSettled([
+          fetchFlowersByCategory("flowerstring"),
+          fetchFlowersByCategory("looseflowers"),
+        ]);
 
-        setGarlandCategoryImages(categoryImages || {});
+        if (flowerStringProducts.status === "fulfilled") {
+          const fsImg = flowerStringProducts.value.find((p) => p.image)?.image;
+          if (fsImg) {
+            categoryImages["Flower String"] = fsImg;
+            categoryImages["flowerstring"] = fsImg;
+            categoryImages["Flower Strings"] = fsImg;
+            categoryImages["flowerstrings"] = fsImg;
+          }
+        }
+
+        if (looseFlowerProducts.status === "fulfilled") {
+          const lfImg = looseFlowerProducts.value.find((p) => p.image)?.image;
+          if (lfImg) {
+            categoryImages["Loose Flowers"] = lfImg;
+            categoryImages["looseflowers"] = lfImg;
+            categoryImages["Loose Flower"] = lfImg;
+            categoryImages["looseflower"] = lfImg;
+          }
+        }
+
+        if (!isMounted) return;
+        setGarlandCategoryImages(categoryImages);
       } catch {
+        if (!isMounted) return;
         setGarlandCategoryImages({});
       }
     };
