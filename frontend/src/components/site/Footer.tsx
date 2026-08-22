@@ -22,9 +22,9 @@ export function Footer() {
   };
 
   return (
-    <footer className="mt-16 border-t border-border bg-primary text-primary-foreground sm:mt-20 md:mt-20">
-      <div className="hidden md:block">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:py-14 md:grid-cols-4 md:gap-10">
+    <footer className="mt-16 border-t border-border bg-primary text-primary-foreground sm:mt-20 md:mt-20 pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0">
+      <div>
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:py-14 sm:grid-cols-2 md:grid-cols-4 md:gap-10">
           <div>
             <div className="font-display text-2xl sm:text-3xl">DUVIX <br /> "Flowers & Events"</div>
             <p className="mt-2 text-sm opacity-80">
@@ -36,21 +36,24 @@ export function Footer() {
           <div>
             <h4 className="mb-3 font-display text-lg">Shop</h4>
             <ul className="space-y-2 text-sm opacity-85">
-              <li><Link to="/garlands">All Garlands</Link></li>
-              <li><Link to="/flowers">All Flowers</Link></li>
-              <li><Link to="/collections/$slug" params={{ slug: "wedding" }}>Events</Link></li>
-              <li><Link to="/gifts">Gift</Link></li>
-              <li><Link to="/custom">Custom Orders</Link></li>
+              <li><Link to="/garlands" className="hover:underline">All Garlands</Link></li>
+              <li><Link to="/flowers" className="hover:underline">All Flowers</Link></li>
+              <li><Link to="/collections/$slug" params={{ slug: "wedding" }} className="hover:underline">Events</Link></li>
+              <li><Link to="/gifts" className="hover:underline">Gift</Link></li>
+              <li><Link to="/custom" className="hover:underline">Custom Orders</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="mb-3 font-display text-lg">Support</h4>
             <ul className="space-y-2 text-sm opacity-85">
-              <li><Link to="/track">Track your order</Link></li>
-              <li><Link to="/contact">Shipping & Returns</Link></li>
-              <li><Link to="/about">About DUVIX</Link></li>
-              <li><a href="#">Contact US</a></li>
+              <li><Link to="/track" className="hover:underline">Track your order</Link></li>
+              <li><Link to="/contact" className="hover:underline">Shipping & Returns</Link></li>
+              <li><Link to="/about" className="hover:underline">About DUVIX</Link></li>
+              <li><Link to="/contact" className="hover:underline">Contact US</Link></li>
+              <li><Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link></li>
+              <li><Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link></li>
+              <li><Link to="/refund-policy" className="hover:underline">Refund Policy</Link></li>
             </ul>
           </div>
 
@@ -60,8 +63,17 @@ export function Footer() {
             <p className="mt-2 flex gap-2 text-sm opacity-85"><Mail className="mt-0.5 h-4 w-4 shrink-0" />duvixgarlandss@gmail.com</p>
           </div>
         </div>
-        <div className="border-t border-primary-foreground/10 py-4 text-center text-xs opacity-70">
-          © {new Date().getFullYear()}  Garlands, Flowers & Events – Crafted with Love by DUVIX
+        <div className="border-t border-primary-foreground/10 py-4 px-4 text-center text-xs opacity-70">
+          <div className="mb-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+            <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+            <span>•</span>
+            <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
+            <span>•</span>
+            <Link to="/refund-policy" className="hover:underline">Refund Policy</Link>
+          </div>
+          <div>
+            © {new Date().getFullYear()} Garlands, Flowers & Events – Crafted with Love by DUVIX
+          </div>
         </div>
       </div>
 

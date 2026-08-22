@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as TrackRouteImport } from './routes/track'
+import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as GarlandsRouteImport } from './routes/garlands'
 import { Route as FlowersRouteImport } from './routes/flowers'
@@ -35,9 +38,24 @@ const TrackRoute = TrackRouteImport.update({
   path: '/track',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
+  id: '/terms-and-conditions',
+  path: '/terms-and-conditions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GiftsRoute = GiftsRouteImport.update({
@@ -111,7 +129,10 @@ export interface FileRoutesByFullPath {
   '/flowers': typeof FlowersRoute
   '/garlands': typeof GarlandsRoute
   '/gifts': typeof GiftsRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/search': typeof SearchRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRoute
   '/wishlist': typeof WishlistRoute
   '/collections/$slug': typeof CollectionsSlugRoute
@@ -128,7 +149,10 @@ export interface FileRoutesByTo {
   '/flowers': typeof FlowersRoute
   '/garlands': typeof GarlandsRoute
   '/gifts': typeof GiftsRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/search': typeof SearchRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRoute
   '/wishlist': typeof WishlistRoute
   '/collections/$slug': typeof CollectionsSlugRoute
@@ -146,7 +170,10 @@ export interface FileRoutesById {
   '/flowers': typeof FlowersRoute
   '/garlands': typeof GarlandsRoute
   '/gifts': typeof GiftsRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/search': typeof SearchRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRoute
   '/wishlist': typeof WishlistRoute
   '/collections/$slug': typeof CollectionsSlugRoute
@@ -165,7 +192,10 @@ export interface FileRouteTypes {
     | '/flowers'
     | '/garlands'
     | '/gifts'
+    | '/privacy-policy'
+    | '/refund-policy'
     | '/search'
+    | '/terms-and-conditions'
     | '/track'
     | '/wishlist'
     | '/collections/$slug'
@@ -182,7 +212,10 @@ export interface FileRouteTypes {
     | '/flowers'
     | '/garlands'
     | '/gifts'
+    | '/privacy-policy'
+    | '/refund-policy'
     | '/search'
+    | '/terms-and-conditions'
     | '/track'
     | '/wishlist'
     | '/collections/$slug'
@@ -199,7 +232,10 @@ export interface FileRouteTypes {
     | '/flowers'
     | '/garlands'
     | '/gifts'
+    | '/privacy-policy'
+    | '/refund-policy'
     | '/search'
+    | '/terms-and-conditions'
     | '/track'
     | '/wishlist'
     | '/collections/$slug'
@@ -217,7 +253,10 @@ export interface RootRouteChildren {
   FlowersRoute: typeof FlowersRoute
   GarlandsRoute: typeof GarlandsRoute
   GiftsRoute: typeof GiftsRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
   SearchRoute: typeof SearchRoute
+  TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   TrackRoute: typeof TrackRoute
   WishlistRoute: typeof WishlistRoute
   CollectionsSlugRoute: typeof CollectionsSlugRoute
@@ -241,11 +280,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms-and-conditions': {
+      id: '/terms-and-conditions'
+      path: '/terms-and-conditions'
+      fullPath: '/terms-and-conditions'
+      preLoaderRoute: typeof TermsAndConditionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gifts': {
@@ -345,7 +405,10 @@ const rootRouteChildren: RootRouteChildren = {
   FlowersRoute: FlowersRoute,
   GarlandsRoute: GarlandsRoute,
   GiftsRoute: GiftsRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
   SearchRoute: SearchRoute,
+  TermsAndConditionsRoute: TermsAndConditionsRoute,
   TrackRoute: TrackRoute,
   WishlistRoute: WishlistRoute,
   CollectionsSlugRoute: CollectionsSlugRoute,
